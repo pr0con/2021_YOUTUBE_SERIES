@@ -1,0 +1,94 @@
+2021 React 3d Refactor Youtube Series
+Ubuntu 20.10
+
+1. Setup System and Nginx
+#> apt-get update
+#> apt-get upgrade
+#> apt-get install nginx 
+
+#> cd /etc/nginx/sites-available  <-- real files for configs
+#> rm default
+
+#> cd /etc/nginx/sites-enabled    <-- sym link to enable config
+#> rm default
+
+#> cd /etc/nginx/sites-available
+#> touch filenameforyoursite.com <- add below text to this file
+
+server {
+	listen 443 ssl;
+	listen [::]:443 ssl;
+	server_name  yoursite.com;
+	
+	add_header Cache-Control no-cache;
+	
+	ssl_certificate /etc/letsencrypt/live/yoursite.com/fullchain.pem;
+	ssl_certificate_key /etc/letsencrypt/live/yoursite.com/privkey.pem;
+	
+	root /var/www/parcel_blueprint/dist;
+	index index.php index.html index.htm;
+	
+	location / {
+		try_files $uri $uri/ /index.php?$query_string;
+	}
+	
+	error_page 404 /index.html;
+	
+	location ~ \.php$ {
+		include snippets/fastcgi-php.conf;
+		fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+	}
+	
+	location ~ /\.ht {
+		deny all;
+	}
+}
+
+#> ln -s /etc/nginx/sites-available/filenameforyoursite.com /etc/nginx/sites-enabled/
+
+2. Install Letsencrypt
+#> apt install certbot python3-certbot-nginx
+#> service nginx stop
+#> cerbot certonly --standalone -d yoursite.com
+#> service nginx start
+
+3. Install node
+#> wget https://nodejs.org/dist/v15.13.0/node-v15.13.0-linux-x64.tar.xz   <-- in /var/www
+#> tar xf node-v15.13.0-linux-x64.tar.xz
+#> mv node-v15.13.0-linux-x64 node
+#> rm node-v15.13.0-linux-x64.tar.xz
+
+#> ln -s /var/www/node/bin/node /usr/sbin
+#> ln -s /var/www/node/bin/npm /usr/sbin
+
+#> mkdir /var/www/pacel_blueprint
+#> cd /var/www/pacel_blueprint
+#> npm init -y
+
+#> npm install parcel@next
+#> npm install --save @babel/core
+#> npm install --save @babel/plugin-transform-runtime 
+#> npm install --save react react-dom
+
+#> mkdir /var/www/src
+#> mkdir /var/www/src/Components
+#> mkdir /var/www/src/fonts
+#> mkdir /var/www/src/css
+
+#> cd /var/www/src/Components
+#> touch App.js
+#> touch AppProvider.js
+
+#> cd /var/www/src/css
+#> touch master.css
+
+#> cd /var/www/src
+#> touch index.html
+#> touch .babelrc
+
+***** NOTE *****
+	- Contents at this point will be @ the github repository called 2021 Youtube Series
+
+
+
+
