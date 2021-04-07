@@ -90,5 +90,47 @@ server {
 	- Contents at this point will be @ the github repository called 2021 Youtube Series
 
 
+Video #2 
+	1. get mongo installed
+		- install using mongodb site instructions
+		- add a user
+			- #> mongo
+			- #mongo> use admin
+			paste below / change as needed
+			
+db.createUser({
+  user: "mongod",
+  pwd: "SOMEHARDPASSWORD",
+  roles: [
+			{ role: "userAdminAnyDatabase", db: "admin" },
+			{ role: "readWriteAnyDatabase", db: "admin" },
+			{ role: "dbAdminAnyDatabase", db: "admin"},
+			{ role: "clusterAdmin", db: "admin" }
+		 ]
+})	
+
+		- #> service mongod stop
+		- #> vi /etc/mongod.conf
+				- add ip, add security
+					net:
+					  port: 27017
+					  bindIp: 127.0.0.1,yourip
+					
+					security:
+					  authorization: enabled		
+					  			
+		- #> vi /lib/systemd/system/mongod.service
+				MODIFY LINE TO> ExecStart=/usr/bin/mongod --auth --config /etc/mongod.conf
+		- #> service mongod start
+		
+	2. get golang installed
+		#> cd /var/www
+		#> wget https://golang.org/dl/go1.16.3.linux-amd64.tar.gz
+		#> tar xf go1.16.3.linux-amd64.tar.gz
+		#> rm go1.16.3.linux-amd64.tar.gz
+		#> ln -s /var/www/go/bin/go /usr/sbin
+		- see bash_profile_copy
+
+
 
 
