@@ -15,8 +15,29 @@ const StyledApp = styled.div`
 	left: 0px;
 	
 	width: 100vw;
-	height: 100vh;	
+	height: 100vh;
+	
+	overflow: hidden;	
+	padding: .5rem;
+
+	#viewport {
+		position: relative;
+		
+		top: 0px;
+		left: 0px;
+		
+		width: 100%;
+		height: 100%;
+		
+		border: 1px solid #ccc;
+		boder-radius: .2rem;
+		
+		perspective: 1000px;	
+	}
 `;
+
+import { Controls } from './Controls.js';
+import { Windows } from './Windows.js';
 
 export function App() {
 	return(
@@ -26,7 +47,10 @@ export function App() {
 					<RecoilRoot>
 						<StyledApp>
 							<GS />
-							<div className="from-global-styles">{something}</div>
+							<div id="viewport">
+								<Windows />
+								<Controls />
+							</div>
 						</StyledApp>
 					</RecoilRoot>
 				)}
