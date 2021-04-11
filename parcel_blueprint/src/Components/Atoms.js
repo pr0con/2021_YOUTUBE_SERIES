@@ -40,28 +40,6 @@ export const angle = atom({
 });
 
 
-// set: async ({get,set}, op)  --->  Async selector sets are not currently supported.
-export const operation = selector({
-	key: 'operation',
-	get: ({get}) => true,
-	set: ({get,set}, op) => {
-		switch(op) {
-			case "up":
-			case "down":
-				console.log('GOT UP OR DOWN OPERATION');
-				break;
-			case "left":
-			case "right":
-				(op === "left") ? console.log('hit recoil turn left') : (op === "right") ? console.log('hit recoil turn right') : '';
-				
-				break;
-			default:
-				break;	
-		}
-	}
-});
-
-
 /*
 	Carousel Rotation
 */
@@ -74,3 +52,37 @@ export const macroIndex = atom({
 	key: 'macro-index',
 	default: 0
 });
+
+
+
+// set: async ({get,set}, op)  --->  Async selector sets are not currently supported.
+export const operation = selector({
+	key: 'operation',
+	get: ({get}) => true,
+	set: ({ get, set}, op) => {
+		switch(op) {
+			case "up":
+			case "down":
+				(op === "up") ? set(windows, get(windows) + 1) : (op === "down") ? set(windows, get(windows) -1) : '';
+				break;
+			case "left":
+			case "right":
+				(op === "left" && get(wind0w) === 1) ? set(wind0w, get(windows)) : (op === "left") ? set(wind0w, get(wind0w) - 1) : '';
+				(op === "right" && get(wind0w) === get(windows)) ? set(wind0w, 1) : (op === "right") ? set(wind0w, get(wind0w) + 1) : '';
+				
+				let theta = 360 / get(windows);
+				let radius = get(perspective) - get(zoom);
+				
+				let next_index = (op === "left") ? get(macroIndex) - 1 : (op === "right") ? get(macroIndex) + 1 : '';
+				set(macroIndex, next_index);
+				
+				set(rotation, (theta * next_index * -1));
+				
+				break;
+			default:
+				break;	
+		}
+	}
+});
+
+
