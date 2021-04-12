@@ -54,12 +54,19 @@ export const macroIndex = atom({
 });
 
 
+/* For Controls Display */
+export const direction = atom({
+	key: 'direction',
+	default: 'noop'
+});
+
 
 // set: async ({get,set}, op)  --->  Async selector sets are not currently supported.
 export const operation = selector({
 	key: 'operation',
-	get: ({get}) => true,
+	get: ({get}) => { return get(direction) },
 	set: ({ get, set}, op) => {
+		set(direction, op);
 		switch(op) {
 			case "up":
 			case "down":
@@ -85,4 +92,24 @@ export const operation = selector({
 	}
 });
 
+/* Floating Components */
+export const profile = atom({
+	key: 'update-create-profile',
+	default: false
+});
+
+export const webcam = atom({
+	key: 'webcam',
+	default: false
+});
+
+export const imgSrc = atom({
+	key: 'imgSrc',
+	default: '/images/profile-image-placeholder.webp'
+});
+
+export const imgSrcSrc = atom({
+		key: 'img-src-src',
+		default: 'noop'
+});
 

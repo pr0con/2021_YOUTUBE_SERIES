@@ -36,8 +36,10 @@ const StyledApp = styled.div`
 	}
 `;
 
+
 import { Controls } from './Controls.js';
 import { Windows } from './Windows.js';
+import { Profile } from './Profile.js';
 
 export function App() {
 	return(
@@ -50,6 +52,7 @@ export function App() {
 							<div id="viewport">
 								<Windows />
 								<Controls />
+								<Profile />
 							</div>
 						</StyledApp>
 					</RecoilRoot>
