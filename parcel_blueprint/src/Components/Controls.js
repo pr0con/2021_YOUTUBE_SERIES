@@ -55,7 +55,7 @@ const StyleControls = styled.div`
 	
 `;
 
-import { operation, profile, webcam, imgSrc, imgSrcSrc } from './Atoms.js';
+import { orientation, operation, profile, webcam, imgSrc, imgSrcSrc } from './Atoms.js';
 
 export function Controls() {
 	const [ shiftDown, setShiftDown ] = useState(false);
@@ -68,6 +68,7 @@ export function Controls() {
 	const [ imgSrc_, setImgSrc ] = useRecoilState(imgSrc);
 	const [ imgSrcSrc_, setImgSrcSrc ] = useRecoilState(imgSrcSrc);	
 		
+	const [ orientation_, setOrientation ] = useRecoilState(orientation);	
 	const [ operation_, setOperation ] = useRecoilState(operation);
 	
 	const { iiRef, wcRef, piRef, DataURIToBlob } = useContext(AppContext);
@@ -94,6 +95,12 @@ export function Controls() {
 				case 'ArrowLeft':
 				case 'ArrowRight':
 					(key_event.shiftKey === true && event.key == 'ArrowLeft') ? setOperation('left') : (key_event.shiftKey === true && event.key == 'ArrowRight') ? setOperation('right') : '';				
+					break;
+				
+				
+				
+				case 'O': //for changing orientation
+					(orientation_ === 'rotateY') ? setOrientation('rotateX') : setOrientation('rotateY');
 					break;
 				
 				case 'P': //uppercase because shift is down for this one.

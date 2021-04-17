@@ -133,4 +133,8 @@ db.createUser({
 
 
 
+PM2 + Mongo + Gin
+==================
+cd /var/www/node -> npm install pm2 -g
+ln -s /var/www/node/bin/pm2 /usr/sbin
 

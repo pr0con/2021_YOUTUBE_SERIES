@@ -4,6 +4,11 @@ import { atom, selector } from 'recoil';
 /*
 	Carousel Properties
 */
+export const MAX_WINDOWS = atom({
+	key: 'MAX_WINDOWS',
+	default: 9
+});
+
 export const windows = atom({
 	key: 'windows',
 	default: 9
@@ -60,8 +65,23 @@ export const direction = atom({
 	default: 'noop'
 });
 
-
+//https://codepen.io/desandro/pen/wjeBpp
 // set: async ({get,set}, op)  --->  Async selector sets are not currently supported.
+const updatCarousel = (get,set) => {
+	let theta = 360 / get(windows);	
+	set(rotation, (theta * get(macroIndex) * -1));
+}
+
+
+//technically op not used yet... 
+const rotateCarousel = (get,set,op) => {
+	let theta = 360 / get(windows);	
+	let next_index = (op === "left") ? get(macroIndex) - 1 : (op === "right") ? get(macroIndex) + 1 : '';	
+
+	set(macroIndex, next_index);
+	set(rotation, (theta * next_index * -1));	
+}
+
 export const operation = selector({
 	key: 'operation',
 	get: ({get}) => { return get(direction) },
@@ -70,21 +90,17 @@ export const operation = selector({
 		switch(op) {
 			case "up":
 			case "down":
-				(op === "up") ? set(windows, get(windows) + 1) : (op === "down") ? set(windows, get(windows) -1) : '';
+				(op === "up" && get(windows) + 1 <= get(MAX_WINDOWS)) ? set(windows, get(windows) + 1) : (op === "down" && get(windows) > 3) ? set(windows, get(windows) -1) : '';
 				break;
 			case "left":
 			case "right":
 				(op === "left" && get(wind0w) === 1) ? set(wind0w, get(windows)) : (op === "left") ? set(wind0w, get(wind0w) - 1) : '';
 				(op === "right" && get(wind0w) === get(windows)) ? set(wind0w, 1) : (op === "right") ? set(wind0w, get(wind0w) + 1) : '';
+				rotateCarousel(get,set,op);
+				break;
 				
-				let theta = 360 / get(windows);
-				let radius = get(perspective) - get(zoom);
-				
-				let next_index = (op === "left") ? get(macroIndex) - 1 : (op === "right") ? get(macroIndex) + 1 : '';
-				set(macroIndex, next_index);
-				
-				set(rotation, (theta * next_index * -1));
-				
+			case "update":
+				updatCarousel(get,set);
 				break;
 			default:
 				break;	

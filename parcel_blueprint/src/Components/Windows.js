@@ -19,7 +19,7 @@ const StyledWindows = styled.div`
 `;
 
 import { Cell } from './Cell.js';
-import { windows, orientation, transforms, zoom, angle, perspective, rotation } from './Atoms.js';
+import { windows, orientation, transforms, zoom, angle, perspective, rotation, operation } from './Atoms.js';
 
 export function Windows() {
 	const zoom_ = useRecoilValue(zoom);
@@ -29,6 +29,7 @@ export function Windows() {
 	const rotation_ = useRecoilValue(rotation);
 	const [ perspective_, setPerspective ] = useRecoilState(perspective);
 	const orientation_ = useRecoilValue(orientation);
+	const [ operation_, setOperation ] = useRecoilState(operation);	
 		
 	useEffect(() => {
 		let new_transforms = [];
@@ -46,7 +47,10 @@ export function Windows() {
 		
 		setPerspective(-(radius+zoom_)); //positive zoom goes back, negative zoom goes forward
 		setTransforms([...new_transforms]);
-	},[windows_]);	
+		
+		//Used for adding or removing windows || change of orientation
+		setOperation("update");
+	},[windows_, orientation_]);	
 		
 	useEffect(() => {
 		console.log(transforms_);

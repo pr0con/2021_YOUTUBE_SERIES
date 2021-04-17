@@ -15,7 +15,7 @@ import(
 	"github.com/rs/cors"
 )
 
-var addr = flag.String("addr", "0.0.0.0:4500", "Http Serverice Address")
+var addr = flag.String("addr", "0.0.0.0:4500", "Http Service Address")
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 //1MB
 
