@@ -59,12 +59,12 @@ const StyledProfile = styled.div`
 	}
 `;
 
-export const imgSrc = atom({
+const imgSrc = atom({
 	key: 'imgSrc',
 	default: '/images/Svgs/Anonymous.svg'
 });
 
-export const imgSrcSrc = atom({
+const imgSrcSrc = atom({
 		key: 'img-src-src',
 		default: 'noop'
 });
@@ -89,16 +89,18 @@ export function Profile({classes}) {
 	const [ useWebcam, setUseWebcam ] = useState(false);
 
 	const [ imgSrc_, setImgSrc ] = useRecoilState(imgSrc);
-	const [ imgSrcSrc_, setImgSrcSrc ] = useRecoilState(imgSrc); //img src from -> webcam or upload?
+	const [ imgSrcSrc_, setImgSrcSrc ] = useRecoilState(imgSrcSrc); //img src from -> webcam or upload?
 	
 	const { iiRef, wcRef, piRef, DataURIToBlob } = useContext(AppContext);
 	
-	const takeSnapshot = () => {
+	const takeSnapShot = () => {
 		const imageSrc = wcRef.current.getScreenshot();
+		console.log(imageSrc);
+		
 		
 		setImgSrc(imageSrc);
-		setWebcam(false);
-		setImgSrcSrc('webcam');		
+		setUseWebcam(false);
+		setImgSrcSrc('webcam');			
 	}
 	
 	const handleImage = (files) => {
@@ -129,8 +131,14 @@ export function Profile({classes}) {
 	
 	
 	const clearProfile = () => {
-		if(imgSrc_ != "/images/Svgs/Anonymous.svg" || profileData.username !== '' || profileData.password != '' || profileData.confirm !== '' ) {
-			//clear profile implement later....
+		if(imgSrc_ !== "/images/Svgs/Anonymous.svg" || profileData.username !== '' || profileData.password != '' || profileData.confirm !== '' ) {
+			setUseWebcam(false);
+			setProfileData({
+				username: '',
+				password: '',
+				confirm: '',
+			});
+			setImgSrc('/images/Svgs/Anonymous.svg');
 		}
 	}
 	
@@ -170,8 +178,26 @@ export function Profile({classes}) {
 				<MaterialInput type="password" label="Confirm" k="confirm" v={profileData.confirm} onChange={(k,v) => handleProfileInput(k,v)} classes="profile-input" />
 			</div>
 			
-			<div id="profile-actions">	
-				<MaterialButton classes="profile-data-btn mr-5" onClick={(e) => clearProfile()}><span>Clear</span> </MaterialButton>
+			<div id="profile-actions">
+				{ imgSrc_ !== "/images/Svgs/Anonymous.svg" && ![profileData.username,profileData.password,profileData.confirm].includes('') && (profileData.password === profileData.confirm) &&
+					<MaterialButton classes="profile-data-btn mr-5" onClick={(e) => submitProfile()}><span>Post</span></MaterialButton>
+				}
+				
+				{ useWebcam ?
+					<>
+						<MaterialButton classes="profile-data-btn mr-5" onClick={(e) => takeSnapShot()}><span>Take Snapshot</span> </MaterialButton>
+						<MaterialButton classes="profile-data-btn mr-5" onClick={(e) => setUseWebcam(false)}><span>Cancel</span> </MaterialButton>
+					</>
+				:
+					<>
+						<MaterialButton classes="profile-data-btn mr-5" onClick={(e) => doUploadPhoto()}><span>Upload Photo</span> </MaterialButton>
+						<MaterialButton classes="profile-data-btn mr-5" onClick={(e) => setUseWebcam(!useWebcam)}><span>Toggle Webcam</span> </MaterialButton>
+					</>
+				}
+						
+				{	(imgSrc_ !== "/images/Svgs/Anonymous.svg" || profileData.username !== '' || profileData.password !== '' || profileData.confirm !== '' ) &&
+					<MaterialButton classes="profile-data-btn mr-5" onClick={(e) => clearProfile()}><span>Clear</span> </MaterialButton>
+				}
 			</div>
 		</StyledProfile>	
 	)
