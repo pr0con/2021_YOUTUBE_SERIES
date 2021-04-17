@@ -1,28 +1,27 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useRef, useState, useEffect, useContext } from 'react';
 import styled from 'styled-components';
 import Webcam from 'react-webcam';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { atom, useRecoilState, useRecoilValue } from 'recoil';
 
 import { AppContext } from './AppProvider.js';
 const StyledProfile = styled.div`
-	position: absolute;
+	position: relative;
 	
-	top: 50%;
-	left: 50%;
+	width: 30rem;
+	height: 40rem;
 	
-	transform: translate(-50%, -50%);
+	border-radius: .4rem;
+	background: rgba(12,6,8,.6);
 	
-	display: none;
-	&.on {
-		display: flex;
-		flex-direction: column;	
-	}
+	padding: .5rem;
 	
+	display: flex;
+	flex-direction: column;
 	
 	#profile-image-wrapper {
 		position: relative;
-		width: 24rem;
-		height: 24rem;
+		width: 100%;
+		min-height: 21.45rem;
 		
 		display: flex;
 		align-items: center;
@@ -36,23 +35,71 @@ const StyledProfile = styled.div`
 		img {
 			position: relative;
 			width: 100%;
-			height: 100%;
-			max-height: 18rem;
-			object-fit: cover;	
+			height: 21.45rem;
+			max-height: 21.45rem;
+			object-fit: cover;
 		}
 	}
 	#profile-image-form { opacity: 0; max-height: 0px; overlfow: hidden; }
+	
+	#profile-data {}
+	#profile-actions {
+		position: relative;
+		margin-top: .5rem;
+			
+		display: flex;
+		flex-direction: row-reverse;
+		
+		.profile-data-btn {
+			padding: 0 .3rem 0 .3rem;
+			color: #734b4d;
+			border: 1px solid #734b4d;
+			border-radius: .2rem;	
+		}
+	}
 `;
 
-import { profile, webcam, imgSrc, imgSrcSrc } from './Atoms.js';
+export const imgSrc = atom({
+	key: 'imgSrc',
+	default: '/images/Svgs/Anonymous.svg'
+});
 
-export function Profile() {
-	const profile_ = useRecoilValue(profile);
-	const webcam_  = useRecoilValue(webcam);
+export const imgSrcSrc = atom({
+		key: 'img-src-src',
+		default: 'noop'
+});
+
+import { MaterialInput } from './MaterialInput.js';
+import { MaterialButton } from './MaterialButton.js';
+
+
+
+//https://thenounproject.com/term/hacker/
+export function Profile({classes}) {
+	const [ profileData, setProfileData ] = useState({
+		username: '',
+		password: '',
+		confirm: ''	
+	});
+
+	const handleProfileInput = (k,v) => {
+		setProfileData((pd) => ({...pd, [k]:v }))
+	}
+
+	const [ useWebcam, setUseWebcam ] = useState(false);
+
 	const [ imgSrc_, setImgSrc ] = useRecoilState(imgSrc);
 	const [ imgSrcSrc_, setImgSrcSrc ] = useRecoilState(imgSrc); //img src from -> webcam or upload?
 	
-	const { iiRef, wcRef, piRef } = useContext(AppContext);
+	const { iiRef, wcRef, piRef, DataURIToBlob } = useContext(AppContext);
+	
+	const takeSnapshot = () => {
+		const imageSrc = wcRef.current.getScreenshot();
+		
+		setImgSrc(imageSrc);
+		setWebcam(false);
+		setImgSrcSrc('webcam');		
+	}
 	
 	const handleImage = (files) => {
 		let reader = new FileReader();
@@ -61,10 +108,10 @@ export function Profile() {
 		if(file) {
 			if(!file.type.match("image.*")) {
 				console.log('Upload a valid image');
-				setImgSrc('/images/profile-image-placeholder.webp');
+				setImgSrc('/images/Svgs/Anonymous.svg');
 			} else if(file.size > 100000000) { //if > 1mb
 				console.log('File to large');
-				setImgSrc('/images/profile-image-placeholder.webp');
+				setImgSrc('/images/Svgs/Anonymous.svg');
 			}else {
 				reader.onloadend = () => {
 					setImgSrc(reader.result);
@@ -76,10 +123,38 @@ export function Profile() {
 		}
 	}
 	
+	const doUploadPhoto = () => {
+		iiRef.current.click();
+	}
+	
+	
+	const clearProfile = () => {
+		if(imgSrc_ != "/images/Svgs/Anonymous.svg" || profileData.username !== '' || profileData.password != '' || profileData.confirm !== '' ) {
+			//clear profile implement later....
+		}
+	}
+	
+	const submitProfile = async () => {
+		let fd = new FormData(piRef.current);
+		
+		if (imgSrcSrc_ === 'webcam') {
+			console.log(imgSrc_);
+			fd.set('file', DataURIToBlob(imgSrc_), 'whatever_you_feel_like.jpg')	
+		}
+		
+		let response = await fetch('https://var.pr0con.com:4500/upload', {
+			method: 'POST',
+			body: fd
+		});
+		
+		let result = await response.json();
+		console.log(result);		
+	}
+	
 	return(
-		<StyledProfile className={`${profile_ ? 'on' : 'off'}`}>
+		<StyledProfile className={`${classes}`}>
 			<div id="profile-image-wrapper">
-				{ webcam_ ? 
+				{ useWebcam ? 
 					<Webcam style={{ margin: 2}} audio={false} ref={wcRef} videoConstraints={{ facingMode: "user"}} screenshotFormat="image/jpeg"/>
 				:	
 					<img src={imgSrc_} />
@@ -88,11 +163,15 @@ export function Profile() {
 			<form id="profile-image-form" encType="multipart/form-data" ref={piRef}>
 				<input id="profile-image-input" name="file" accept="image/*" type="file" ref={iiRef} onChange={(e) => handleImage(e)} />
 			</form>
-			<input type="text" placeholder="Username" />
-			<input type="password" placeholder="Password" />
-			<input type="password" placeholder="Confirm Password" />
+
+			<div id="profile-data">
+				<MaterialInput type="text" label="Username" k="username" v={profileData.username} onChange={(k,v) => handleProfileInput(k,v)} classes="profile-input" />
+				<MaterialInput type="password" label="Password" k="password" v={profileData.password} onChange={(k,v) => handleProfileInput(k,v)} classes="profile-input" />
+				<MaterialInput type="password" label="Confirm" k="confirm" v={profileData.confirm} onChange={(k,v) => handleProfileInput(k,v)} classes="profile-input" />
+			</div>
 			
 			<div id="profile-actions">	
+				<MaterialButton classes="profile-data-btn mr-5" onClick={(e) => clearProfile()}><span>Clear</span> </MaterialButton>
 			</div>
 		</StyledProfile>	
 	)

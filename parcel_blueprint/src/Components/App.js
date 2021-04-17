@@ -32,7 +32,17 @@ const StyledApp = styled.div`
 		border: 1px solid #ccc;
 		boder-radius: .2rem;
 		
-		perspective: 1000px;	
+		perspective: 1000px;
+		
+		#floating-panels {
+			position: absolute;
+			
+			max-width: 100%;
+			display: flex;
+			
+			left: .5rem;
+			bottom: .5rem;	
+		}	
 	}
 `;
 
@@ -52,7 +62,10 @@ export function App() {
 							<div id="viewport">
 								<Windows />
 								<Controls />
-								<Profile />
+								
+								<div id="floating-panels">
+									<Profile classes="mr-5"/>
+								</div>
 							</div>
 						</StyledApp>
 					</RecoilRoot>

@@ -50,7 +50,7 @@ export function Windows() {
 		
 		//Used for adding or removing windows || change of orientation
 		setOperation("update");
-	},[windows_, orientation_]);	
+	},[ windows_, orientation_ ]);	
 		
 	useEffect(() => {
 		console.log(transforms_);

@@ -57,22 +57,16 @@ const StyleControls = styled.div`
 
 import { orientation, operation, profile, webcam, imgSrc, imgSrcSrc } from './Atoms.js';
 
-export function Controls() {
+export function Controls() {	
 	const [ shiftDown, setShiftDown ] = useState(false);
 	const [ ctrlDown,  setCtrlDown ]  = useState(false);	
 	const [ altDown,   setAltDown ]   = useState(false);	
 	const [ metaDown,  setMetaDown ]  = useState(false);	
 		
-	const [ profile_, setProfile ] = useRecoilState(profile);
-	const [ webcam_, setWebcam ] = useRecoilState(webcam);
-	const [ imgSrc_, setImgSrc ] = useRecoilState(imgSrc);
-	const [ imgSrcSrc_, setImgSrcSrc ] = useRecoilState(imgSrcSrc);	
-		
+
 	const [ orientation_, setOrientation ] = useRecoilState(orientation);	
 	const [ operation_, setOperation ] = useRecoilState(operation);
-	
-	const { iiRef, wcRef, piRef, DataURIToBlob } = useContext(AppContext);
-	
+		
 	const handleKeyDownEvent = async (key_event) => {
 		if(key_event.type == "keydown") {
 			switch(key_event.key) {
@@ -99,48 +93,11 @@ export function Controls() {
 				
 				
 				
-				case 'O': //for changing orientation
-					(orientation_ === 'rotateY') ? setOrientation('rotateX') : setOrientation('rotateY');
+				case 'o': //for changing orientation
+					console.log(key_event);
+					(key_event.ctrlKey === true &&  key_event.metaKey === true &&  orientation_ === 'rotateY') ? setOrientation('rotateX') : (key_event.ctrlKey === true &&  key_event.metaKey === true &&  orientation_ === 'rotateX') ? setOrientation('rotateY') : '';
 					break;
 				
-				case 'P': //uppercase because shift is down for this one.
-					(key_event.shiftKey === true) ? setProfile(!profile_) : '';
-					break;
-				case 'c':
-					(key_event.metaKey === true) ? setWebcam(!webcam_) : '';
-					break;
-					
-				case 't': //for webcam
-					if(key_event.ctrlKey === true) {
-						const imageSrc = wcRef.current.getScreenshot();
-						
-						setImgSrc(imageSrc);
-						setWebcam(false);
-						setImgSrcSrc('webcam');
-					}
-					break;
-				case 'u': // for input image upload
-					if(key_event.ctrlKey === true) {
-						iiRef.current.click();
-					}
-					break;
-				case 'p': //lowercase p because ctrl will be down
-					let fd = new FormData(piRef.current);
-					
-					if (imgSrcSrc_ === 'webcam') {
-						console.log(imgSrc_);
-						fd.set('file', DataURIToBlob(imgSrc_), 'whatever_you_feel_like.jpg')	
-					}
-					
-					let response = await fetch('https://var.pr0con.com:4500/upload', {
-						method: 'POST',
-						body: fd
-					});
-					
-					let result = await response.json();
-					console.log(result);
-					
-					break;
 				default:
 					break;
 			}
