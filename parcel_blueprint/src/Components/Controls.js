@@ -13,7 +13,7 @@ const StyleControls = styled.div`
 	width: 100%;
 	height: 2rem;
 
-	background: #2c3e50;
+	background: rgba(12,6,8,1);
 	
 	display: flex;	
 	align-items: center;
@@ -25,9 +25,10 @@ const StyleControls = styled.div`
 		.control-key {
 			text-transform: uppercase;
 			margin-right: .5rem;
+			color: rgba(81, 49, 54, 1);
 			
 			&.on {
-				color: #27ae60;	
+				color: rgba(115, 75, 77, 1);	
 			}
 		}		
 	}
