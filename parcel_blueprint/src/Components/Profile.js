@@ -78,6 +78,7 @@ import { MaterialButton } from './MaterialButton.js';
 export function Profile({classes}) {
 	const [ profileData, setProfileData ] = useState({
 		username: '',
+		email: '',
 		password: '',
 		confirm: ''	
 	});
@@ -96,8 +97,7 @@ export function Profile({classes}) {
 	const takeSnapShot = () => {
 		const imageSrc = wcRef.current.getScreenshot();
 		console.log(imageSrc);
-		
-		
+				
 		setImgSrc(imageSrc);
 		setUseWebcam(false);
 		setImgSrcSrc('webcam');			
@@ -131,10 +131,11 @@ export function Profile({classes}) {
 	
 	
 	const clearProfile = () => {
-		if(imgSrc_ !== "/images/Svgs/Anonymous.svg" || profileData.username !== '' || profileData.password != '' || profileData.confirm !== '' ) {
+		if(imgSrc_ !== "/images/Svgs/Anonymous.svg" || profileData.username !== '' || profileData.email !== '' || profileData.password != '' || profileData.confirm !== '' ) {
 			setUseWebcam(false);
 			setProfileData({
 				username: '',
+				email: '',
 				password: '',
 				confirm: '',
 			});
@@ -150,9 +151,15 @@ export function Profile({classes}) {
 			fd.set('file', DataURIToBlob(imgSrc_), 'whatever_you_feel_like.jpg')	
 		}
 		
-		let response = await fetch('https://var.pr0con.com:4500/upload', {
+		//fd.delete('file'); as test.
+		fd.set('alias', profileData.username);
+		fd.set('email', profileData.email);
+		fd.set('password', profileData.password);
+		
+		let response = await fetch('https://var.pr0con.com:1300/api/auth/register', {
 			method: 'POST',
-			body: fd
+			body: fd,
+			credentials: 'include',
 		});
 		
 		let result = await response.json();
@@ -174,12 +181,13 @@ export function Profile({classes}) {
 
 			<div id="profile-data">
 				<MaterialInput type="text" label="Username" k="username" v={profileData.username} onChange={(k,v) => handleProfileInput(k,v)} classes="profile-input" />
+				<MaterialInput type="email" label="Email" k="email" v={profileData.email} onChange={(k,v) => handleProfileInput(k,v)} classes="profile-input" />
 				<MaterialInput type="password" label="Password" k="password" v={profileData.password} onChange={(k,v) => handleProfileInput(k,v)} classes="profile-input" />
 				<MaterialInput type="password" label="Confirm" k="confirm" v={profileData.confirm} onChange={(k,v) => handleProfileInput(k,v)} classes="profile-input" />
 			</div>
 			
 			<div id="profile-actions">
-				{ imgSrc_ !== "/images/Svgs/Anonymous.svg" && ![profileData.username,profileData.password,profileData.confirm].includes('') && (profileData.password === profileData.confirm) &&
+				{ imgSrc_ !== "/images/Svgs/Anonymous.svg" && ![profileData.username,profileData.email,profileData.password,profileData.confirm].includes('') && (profileData.password === profileData.confirm) &&
 					<MaterialButton classes="profile-data-btn mr-5" onClick={(e) => submitProfile()}><span>Post</span></MaterialButton>
 				}
 				
@@ -195,7 +203,7 @@ export function Profile({classes}) {
 					</>
 				}
 						
-				{	(imgSrc_ !== "/images/Svgs/Anonymous.svg" || profileData.username !== '' || profileData.password !== '' || profileData.confirm !== '' ) &&
+				{	(imgSrc_ !== "/images/Svgs/Anonymous.svg" || profileData.username !== '' || profileData.email !== ''  || profileData.password !== '' || profileData.confirm !== '' ) &&
 					<MaterialButton classes="profile-data-btn mr-5" onClick={(e) => clearProfile()}><span>Clear</span> </MaterialButton>
 				}
 			</div>

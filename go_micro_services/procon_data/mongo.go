@@ -4,7 +4,7 @@ import(
 	"fmt"
 	"time"
 	//"sync"
-	//"errors"
+	"errors"
 	"context"
 	//"net/http"
 	//"encoding/json"
@@ -13,7 +13,7 @@ import(
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	//"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var tox time.Duration
@@ -55,6 +55,62 @@ func StartMongo() {
 	}
 	
 	fmt.Println(databases)
+}
+
+func RegisterUser(rf *RegistrationForm) (bool,string,string,error) {
+	//return true,"test_at","test_rt",nil
+	ctx_, cancel := context.WithTimeout(ctx, tox)
+	defer cancel()
+	
+	var u_data_obj User
+	collection := client.Database("API").Collection("users")
+	
+	filter := bson.D{{
+		"$or",
+		bson.A{
+			bson.D{{"alias", string(rf.Alias)}},
+			bson.D{{"email", string(rf.Email)}},
+		},
+	}}
+	
+	//We want an error this means the user is not found.... 
+	//its harmless mongo warning / err telling us no document found
+	if err := collection.FindOne(ctx_, filter).Decode(&u_data_obj); err != nil {
+		//no user found let continue creating
+		//return true, "AT","RT", nil
+		encodedHash, err := GenerateArgonHash(rf.Password) //@prcon_data/objects.go
+		if err != nil { return false, "","", err}
+		
+		rf.Password = encodedHash
+		
+		collection := client.Database("API").Collection("users")
+		insertResult, err := collection.InsertOne(ctx, &rf)
+		if err != nil { return false, "","", err}
+		
+		insert_doc_id := insertResult.InsertedID.(primitive.ObjectID).Hex()
+		
+		
+		OID, err := primitive.ObjectIDFromHex(insert_doc_id)
+		if err != nil { return false, "","", err}
+		
+		nuu := User{
+			Id: &OID,
+			Alias: rf.Alias,
+			Email: rf.Email,
+		}
+		
+		at, err := GenerateJWT("ACCESS_TOKEN", &nuu) //@procon_data/objects.go
+		if err != nil { return false, "","", err}
+		rt, err := GenerateJWT("REFRESH_TOKEN", &nuu) //@procon_data/objects.go
+		if err != nil { return false, "","", err}
+		
+		//SUCCESS
+		return true,at,rt,nil 
+	}
+	
+	
+	//fmt.Println(u_data_obj);
+	return false,"","", errors.New("User or Email already taken.")
 }
 
 func StopMongo() {
