@@ -3,9 +3,12 @@ package procon_data
 import(
 	"fmt"
 	"time"
+	"errors"
+	"strings"
 	"io/ioutil"
 	"crypto/rsa"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	
 	jwtgo "github.com/dgrijalva/jwt-go"
@@ -30,6 +33,11 @@ func init() {
 
 
 /* Rest Data Structs */
+type Login struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 type RegistrationForm struct {
 	Alias string `form:"alias" binding:"required"`
 	Email string `form:"email" binding:"required"`
@@ -54,8 +62,9 @@ type Msg struct{
 
 type RespMsg struct {	
 	Type string `json:"type"`
-	Success string `json:"success"`
-	Data string `json:"data"`	
+	Success bool `json:"success"`
+	Data string `json:"data"`
+	Error string `json:"error,ommitempty"`	
 }
 
 /* Argon 2 data objects */
@@ -85,10 +94,54 @@ func GenerateArgonHash(password string) (encodedHash string, err error) {
 	
 	b64Salt := base64.RawStdEncoding.EncodeToString(salt)
 	b64Hash := base64.RawStdEncoding.EncodeToString(hash)
-	
-	encodedHash = fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s%s", argon2.Version, p.memory, p.iterations, p.parallelism, b64Salt, b64Hash)
+							   
+	encodedHash = fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, p.memory, p.iterations, p.parallelism, b64Salt, b64Hash)
 	
 	return encodedHash, nil
+}
+
+func DecodeArgonHash(encodedHash string) (p *argonParams, salt, hash []byte, err error) {
+	vals := strings.Split(encodedHash, "$")
+	if len(vals) != 6 {
+		return nil, nil, nil, errors.New("The encoded hash is not in the correct format.")
+	}
+	
+	var version int
+	_, err = fmt.Sscanf(vals[2], "v=%d", &version)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	
+	if version != argon2.Version {
+		return nil, nil, nil, errors.New("Incopatible version of argon2")
+	}
+	
+	p = &argonParams{}
+	_, err = fmt.Sscanf(vals[3], "m=%d,t=%d,p=%d", &p.memory, &p.iterations,&p.parallelism)
+	if err != nil { return nil, nil, nil, err; }
+
+	salt, err = base64.RawStdEncoding.Strict().DecodeString(vals[4])
+	if err != nil { return nil, nil, nil, err; }
+	p.saltLength = uint32(len(salt))
+	
+	hash, err = base64.RawStdEncoding.Strict().DecodeString(vals[5])
+	if err != nil { return nil, nil, nil, err; }
+	p.keyLength = uint32(len(hash))
+
+	return p, salt, hash, nil
+}
+
+func ComparePasswordAndHash(password, encodedHash string) (match bool, err error) {
+	p, salt, hash, err := DecodeArgonHash(encodedHash)
+	if err != nil { return false, err; }
+	
+	otherHash := argon2.IDKey([]byte(password), salt, p.iterations, p.memory, p.parallelism, p.keyLength)
+	fmt.Println(otherHash)
+	
+	if subtle.ConstantTimeCompare(hash, otherHash) == 1 {
+		return true, nil
+	}	
+	return false, nil
 }
 
 

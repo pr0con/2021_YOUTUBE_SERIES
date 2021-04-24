@@ -50,7 +50,7 @@ const StyledApp = styled.div`
 import { Controls } from './Controls.js';
 import { Windows } from './Windows.js';
 
-
+import { Login } from './Login.js';
 import { Pallete } from './Pallete.js';
 import { Profile } from './Profile.js';
 import { TaskList } from './TaskList.js';
@@ -66,6 +66,7 @@ export function App() {
 							<div id="viewport">
 								<Windows />
 								<Controls />
+								<Login />
 								
 								<div id="floating-panels">
 									<Pallete classes="mr-5"/>

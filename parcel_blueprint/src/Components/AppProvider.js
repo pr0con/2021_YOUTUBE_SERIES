@@ -21,6 +21,17 @@ export default function({children}) {
 		return new Blob([ia], {type: mimeString});
 	}
 	
+	const handleFetchErr = (error) => {
+		if(typeof error === 'object' && 'message' in error) {
+			console.log('EIS: ',error.message);
+			return new Response(JSON.stringify({
+				type: 'alert-error',
+				code: 400,
+				message: 'Stupid network error'
+			}));
+		}
+	}
+	
 	return(
 		<AppContext.Provider value={{
 			iiRef,
@@ -28,6 +39,7 @@ export default function({children}) {
 			piRef,
 			
 			DataURIToBlob,
+			handleFetchErr,
 		}}>
 			{children}
 		</AppContext.Provider>

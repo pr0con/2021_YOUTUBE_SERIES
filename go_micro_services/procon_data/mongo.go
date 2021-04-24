@@ -84,7 +84,7 @@ func RegisterUser(rf *RegistrationForm) (bool,string,string,error) {
 		rf.Password = encodedHash
 		
 		collection := client.Database("API").Collection("users")
-		insertResult, err := collection.InsertOne(ctx, &rf)
+		insertResult, err := collection.InsertOne(ctx, &rf) //Fix Me...
 		if err != nil { return false, "","", err}
 		
 		insert_doc_id := insertResult.InsertedID.(primitive.ObjectID).Hex()
@@ -113,6 +113,33 @@ func RegisterUser(rf *RegistrationForm) (bool,string,string,error) {
 	return false,"","", errors.New("User or Email already taken.")
 }
 
+func AuthenticateUser(username,password string) (*User, error) {
+	ctx_, cancel := context.WithTimeout(ctx, tox);
+	defer cancel()
+	
+	var u_data_obj User
+	collection := client.Database("API").Collection("users") 
+	
+	filter := bson.D{{
+		"$or",
+		bson.A{
+			bson.D{{"alias", string(username)}},
+			bson.D{{"email", string(username)}},
+		},
+	}}
+	
+	if err := collection.FindOne(ctx_, filter).Decode(&u_data_obj); err != nil { return nil, err}
+	
+	match, err := ComparePasswordAndHash(password, u_data_obj.Password)
+	if err != nil { return nil, err }
+	
+	fmt.Println(match)
+	return nil, nil
+}
+
 func StopMongo() {
 	client.Disconnect(ctx)
 }
+
+
+
