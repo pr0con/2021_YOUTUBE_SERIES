@@ -133,8 +133,9 @@ func AuthenticateUser(username,password string) (*User, error) {
 	match, err := ComparePasswordAndHash(password, u_data_obj.Password)
 	if err != nil { return nil, err }
 	
-	fmt.Println(match)
-	return nil, nil
+	if match == true { return &u_data_obj, nil } //saftey net...
+	
+	return nil, nil //most likely wont get here 
 }
 
 func StopMongo() {

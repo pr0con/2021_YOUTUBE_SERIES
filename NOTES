@@ -138,3 +138,7 @@ PM2 + Mongo + Gin
 cd /var/www/node -> npm install pm2 -g
 ln -s /var/www/node/bin/pm2 /usr/sbin
 
+//add to ~/.bashrc after prompt stuffs. if you want extra
+Pretty prompot> PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] ' 
+
+

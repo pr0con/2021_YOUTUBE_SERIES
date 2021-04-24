@@ -2,7 +2,7 @@ package procon_gin
 
 import(
 	"os"
-	"fmt"
+	//"fmt"
 	"net/http"
 	"path/filepath"
 	
@@ -34,14 +34,51 @@ func AuthLogin(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, resp)
 		return			
 	}
-	fmt.Println(authenticated);
 	
+	if authenticated ==  nil {
+		resp := &procon_data.RespMsg{
+			Success: false,
+			Data: "Invalid Login",
+		}
+		c.JSON(http.StatusUnauthorized, resp)
+		return
+	}
+	
+	at, err := procon_data.GenerateJWT("ACCESS_TOKEN", authenticated)
+	if err != nil { 
+		resp := &procon_data.RespMsg{
+			Success: false,
+			Data: "Problem generating access token.",
+		}
+		c.JSON(http.StatusInternalServerError, resp)
+		return		
+	} 
+	
+	rt, err := procon_data.GenerateJWT("REFRESH_TOKEN", authenticated)
+	if err != nil { 
+		resp := &procon_data.RespMsg{
+			Success: false,
+			Data: "Problem generating refresh token.",
+		}
+		c.JSON(http.StatusInternalServerError, resp)
+		return		
+	} 	
+	
+	c.SetCookie(
+		"refresh_token",
+		rt,
+		3600*24,
+		"/",
+		".pr0con.com",
+		true,
+		true,
+	)	
 	
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": "You are logged in",
 		"type": "access-token",
-		"access_token": "fake access token",
+		"access_token": at,
 	})
 }
 
