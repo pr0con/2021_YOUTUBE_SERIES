@@ -40,12 +40,41 @@ const StyledLogin = styled.div`
 
 import { MaterialInput } from './MaterialInput.js';
 import { MaterialButton } from './MaterialButton.js';
+import { loggedIn, initializing, accessToken } from './Atoms.js';
 
 export function Login() {
 	const [ username, setUsername ] = useState('');
 	const [ password, setPassword ] = useState('');
+	const [ initializing_, setInitializing ] = useRecoilState(initializing);
+	const [ accessToken_, setAccessToken ] = useRecoilState(accessToken);
 	
-	const { handleFetchErr } = useContext(AppContext);
+	const { handleFetchErr, pushAlert } = useContext(AppContext);
+	
+	useEffect(() => {
+		if(initializing_) {
+			async function fetchRefresh() {
+				let response = await(await fetch(`https://var.pr0con.com:1300/api/auth/refresh`, {
+					method: 'GET',
+					credentials: 'include'
+				}).catch(handleFetchErr)).json();
+				
+				console.log(response);
+				
+				if('type' in response && response.type === "access-token") pushAlert(response), setAccessToken(response.access_token);
+				if('code' in response && 'message' in response) pushAlert(response); //Most likely a network error
+				if('success' in response && response.success === false) (response.type = 'alert-error'), pushAlert(response);				
+				
+				
+				setInitializing(false);
+			}
+			fetchRefresh()
+		}
+	},[initializing_]);
+	
+	
+	const Logout = async () => {
+		setAccessToken(false);
+	}
 	
 	const Login = async () => {
 		if(![username,password].includes('')) {
@@ -56,25 +85,37 @@ export function Login() {
 				body: JSON.stringify({username,password})
 				
 			}).catch(handleFetchErr)).json();
+			
+			console.log(response);
+			
+			if('type' in response && response.type === "access-token") pushAlert(response), setAccessToken(response.access_token);
+			if('code' in response && 'message' in response) pushAlert(response); //Most likely network Error
+			if('success' in response && response.success === true) pushAlert(response);
+			setInitializing(false);
 		}
 	}
 	
 	return(
-		<StyledLogin>
-			<div id="login-form">
-				<span className="init-message">Please login...</span>
-					<MaterialInput type="text" label="Alias || Email"  v={username} onChange={(v) => setUsername(v)} classes="login-form-input" />
-					<MaterialInput type="password" label="Password" v={password} onChange={(v) => setPassword(v)} classes="login-form-input" />
-					
-				<div id="lf-actions">
-					<MaterialButton classes="generic-form-btn" onClick={(e) => Login()}><span>Log In</span> </MaterialButton>
-				</div>
-			</div>
-			<div id="access-granted-form">
-				<div id="agf-actions">
-				
-				</div>
-			</div>
+		<StyledLogin>	
+				{ (initializing_ === true && accessToken_ === false) ?
+					<span className="init-message">Refreshing credentials...</span>	
+				: (initializing_ === false && accessToken_ === false) ?
+					<div id="login-form">
+						<span className="init-message">Please login...</span>
+						<MaterialInput type="text" label="Alias || Email"  v={username} onChange={(v) => setUsername(v)} classes="login-form-input" />
+						<MaterialInput type="password" label="Password" v={password} onChange={(v) => setPassword(v)} classes="login-form-input" />			
+						<div id="lf-actions">
+							<MaterialButton classes="generic-form-btn" onClick={(e) => Login()}><span>Log In</span> </MaterialButton>
+						</div>
+					</div>
+				: 
+					<div id="access-granted-form">
+						<span className="init-message">Access Granted</span>
+						<div id="agf-actions">
+							<MaterialButton classes="generic-form-btn" onClick={(e) => Logout()}><span>Log Out</span></MaterialButton>
+						</div>
+					</div>
+				}
 		</StyledLogin>		
 	)
 }

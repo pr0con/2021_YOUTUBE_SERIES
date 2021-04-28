@@ -57,6 +57,23 @@ func StartMongo() {
 	fmt.Println(databases)
 }
 
+func GetUser(uoid []byte) (*User, error) {
+	ctx_, cancel := context.WithTimeout(ctx, tox)
+	defer cancel()
+	
+	var u_data_obj User
+	collection := client.Database("API").Collection("users")
+	
+	//Alwways try to handle errors or log this somewhere...
+	objID, _ := primitive.ObjectIDFromHex(string(uoid))
+	
+	if err := collection.FindOne(ctx_, bson.M{"_id": objID}).Decode(&u_data_obj); err != nil {
+		return nil, err
+	} 
+	
+	return &u_data_obj, nil
+}
+
 func RegisterUser(rf *RegistrationForm) (bool,string,string,error) {
 	//return true,"test_at","test_rt",nil
 	ctx_, cancel := context.WithTimeout(ctx, tox)

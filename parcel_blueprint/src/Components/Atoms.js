@@ -108,3 +108,48 @@ export const operation = selector({
 		}
 	}
 });
+
+
+/* Loading and Session Login */
+export const initializing = atom({
+	key: 'initializing',
+	default: true
+});
+
+export const accessToken = atom({
+	key: 'access-token',
+	default: false
+})
+
+export const loggedIn = atom({
+	key: 'logged-in',
+	get: ({get}) => {
+		return ( get(accessToken) === false) ? false : true
+	}
+});
+
+const handleFetchErrors = () => {
+	return new Response(JSON.stringify({
+		type: 'alert-error',
+		code: 400,
+		message: 'Stupid network error'
+	}));	
+}
+
+export const userProfile  = selector({
+	key: 'user-profile',
+	get: async({get}) => {
+		let at = get(accessToken);
+		if(at === false) return
+		
+		let response = await (await fetch(`https://var.pr0con.com:1300/api/auth/profile`, {
+			method: 'GET',
+			//credentials: 'include',
+			headers: {
+				'Authorization': 'Bearer ' + at
+			}
+		}).catch(handleFetchErrors)).json();
+		return response
+		console.log(response);
+	}
+})

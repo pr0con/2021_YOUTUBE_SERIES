@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, createContext } from 'react';
-
+import { nanoid } from 'nanoid';
 /* 
  	Native React Global State System
 */
@@ -8,6 +8,8 @@ export default function({children}) {
 	const iiRef = useRef(null); //image input ref
 	const wcRef = useRef(null); //webcam ref
 	const piRef = useRef(null); //profile image form ref
+	
+	const [ systemAlerts, setSystemAlerts ] = useState([]);
 	
 	const DataURIToBlob = (dataURI) => {
 		const splitDataURI = dataURI.split(',')
@@ -32,6 +34,21 @@ export default function({children}) {
 		}
 	}
 	
+	const pushAlert = async (a) => {
+		a.alertId = await nanoid()
+		
+		if('access_token' in a) a.access_token = 'F00';
+		if('success' in a && a.success === true) a.type = 'alert-success';
+		
+		console.log('hit');
+		setSystemAlerts((alerts) => ([a, ...alerts]));
+	}
+	
+	const killAlert = (aid) => {
+		let filtered_alerts = systemAlerts.filter(a => a.alertId !== aid);
+		setSystemAlerts(filtered_alerts);
+	}
+	
 	return(
 		<AppContext.Provider value={{
 			iiRef,
@@ -40,6 +57,10 @@ export default function({children}) {
 			
 			DataURIToBlob,
 			handleFetchErr,
+			
+			pushAlert,
+			killAlert,
+			systemAlerts,
 		}}>
 			{children}
 		</AppContext.Provider>

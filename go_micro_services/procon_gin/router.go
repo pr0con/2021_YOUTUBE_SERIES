@@ -2,11 +2,21 @@ package procon_gin
 
 import(
 	"github.com/gin-gonic/gin"
+	
+	"go_micro_services/procon_data"
 )
 
 var (
 	Router *gin.Engine
 )
+
+func Approved(token_type string, c *gin.Context) bool {
+	valid, err := procon_data.ValidateJWT(token_type, c)
+	if (err == nil && valid) {
+		return true
+	}
+	return false
+}
 
 func init() {
 	Router = gin.Default()

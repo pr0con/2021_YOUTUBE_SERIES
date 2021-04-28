@@ -5,12 +5,14 @@ import(
 	"time"
 	"errors"
 	"strings"
+	"net/http"
 	"io/ioutil"
 	"crypto/rsa"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
 	
+	"github.com/gin-gonic/gin"
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/argon2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -61,7 +63,7 @@ type Msg struct{
 }
 
 type RespMsg struct {	
-	Type string `json:"type"`
+	Type string `json:"type",omitemty`
 	Success bool `json:"success"`
 	Data string `json:"data"`
 	Error string `json:"error,ommitempty"`	
@@ -178,4 +180,96 @@ func  GenerateJWT(jwt_type string, user *User) (string,error) {
 	
 	//?
 }
+
+func ValidateJWT(token_type string, c *gin.Context) (bool, error) {
+	jwt := c.GetHeader("authorization")
+	
+	if token_type == "ACCESS_TYPE" {
+		splitToken := strings.Split(jwt, "Bearer ")
+		jwt = splitToken[1]
+	}
+	
+	if token_type == "REFRESH_TOKEN" {
+		var err error
+		jwt, err = c.Cookie("refresh_token") 
+		
+		if err != nil {
+			resp := &RespMsg{
+				Success: false,
+				Data:  fmt.Sprintf("No refresh token found:  %s", err.Error()),
+			}
+			c.JSON(http.StatusUnauthorized, resp)
+			return false, nil
+		}
+	}
+	
+	token, err := jwtgo.Parse(jwt, func(token *jwtgo.Token) (interface{}, error) {
+		return PubKeyFile,nil 	
+	})
+	
+	if err != nil {
+		resp := &RespMsg{
+			Success: false,
+			Data:  fmt.Sprintf("Unauthorized Request:  %s", err.Error()),
+		}
+		c.JSON(http.StatusUnauthorized, resp)
+		return false, nil		
+	} else if (token.Valid && err == nil) {
+		claims := token.Claims.(jwtgo.MapClaims)
+		
+		user := claims["user"].(map[string]interface{}) //_id alias email
+		meta := claims["meta"].(map[string]interface{}) //Token Type && LCID custom crap i do later
+	
+		claims_meta_token_type := meta["type"].(string)
+		claims_user_id := user["_id"].(string)
+		
+		fmt.Println(claims_user_id)
+		fmt.Println(claims_meta_token_type)
+		
+		//If access token request at this point we are okay to return true... access granted for request
+		if token_type == "ACCESS_TOKEN" && claims_meta_token_type == "ACCESS_TOKEN" {
+			return true, nil
+		}
+		
+		if token_type == "REFRESH_TOKEN" && claims_meta_token_type == "REFRESH_TOKEN" {
+			//Only generate a new access token since since we want the refresh token to live 24hrs
+			
+			u, err := GetUser([]byte(claims_user_id))
+			if err != nil {
+				resp := &RespMsg{
+					Success: false,
+					Data:  fmt.Sprintf("Error finding account / profile:  %s", err.Error()),
+				}
+				c.JSON(http.StatusUnauthorized, resp)
+				return false, nil		
+			}
+			
+			at, err := GenerateJWT("ACCESS_TOKEN", u)
+			if err != nil {
+				resp := &RespMsg{
+					Success: false,
+					Data:  fmt.Sprintf("Problem refreshing access token:  %s", err.Error()),
+				}
+				c.JSON(http.StatusInternalServerError, resp)
+				return false, nil		
+			}
+			
+			c.JSON(http.StatusOK, gin.H{
+				"success": true,
+				"data": "Your session has been refreshed.",
+				"type": "access-token",
+				"access_token": at,
+			})
+			
+			return true, nil
+		}
+	}
+	
+	return false, nil
+}
+
+
+
+
+
 

@@ -2,7 +2,7 @@ package procon_gin
 
 import(
 	"os"
-	//"fmt"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	
@@ -87,7 +87,12 @@ func AuthLogout(c *gin.Context) {
 }
 
 func AuthRefresh(c *gin.Context) {
-
+	if Approved("REFRESH_TOKEN", c) {
+		fmt.Println("Refresh Access Token Granted.")
+		return
+	}
+	
+	fmt.Println("Refresh Access Token Denied.")
 }
 
 func AuthRegister(c *gin.Context) {
@@ -160,6 +165,10 @@ func AuthRegister(c *gin.Context) {
 		"type": "access-token",
 		"access_token": at,
 	});
+}
+
+func AuthProfile(c *gin.Context) {
+	
 }
 
 

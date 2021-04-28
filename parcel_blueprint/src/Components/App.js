@@ -54,13 +54,14 @@ import { Login } from './Login.js';
 import { Pallete } from './Pallete.js';
 import { Profile } from './Profile.js';
 import { TaskList } from './TaskList.js';
+import { Alerts } from './Alerts.js';
 
 export function App() {
 	return(
-		<AppProvider>
-			<AppContext.Consumer>
-				{({ something }) => (
-					<RecoilRoot>
+		<RecoilRoot>
+			<AppProvider>
+				<AppContext.Consumer>
+					{({ something }) => (
 						<StyledApp>
 							<GS />
 							<div id="viewport">
@@ -73,12 +74,14 @@ export function App() {
 									<Profile classes="mr-5"/>
 									<TaskList />
 								</div>
+								
+								<Alerts />
 							</div>
-						</StyledApp>
-					</RecoilRoot>
-				)}
-			</AppContext.Consumer>
-		</AppProvider>
+						</StyledApp>	
+					)}
+				</AppContext.Consumer>
+			</AppProvider>
+		</RecoilRoot>
 	)
 }
 
