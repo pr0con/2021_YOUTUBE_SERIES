@@ -34,6 +34,7 @@ export default function({children}) {
 		}
 	}
 	
+	//takes a fetch response
 	const pushAlert = async (a) => {
 		a.alertId = await nanoid()
 		

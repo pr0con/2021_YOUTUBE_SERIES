@@ -12,6 +12,23 @@ import(
 	"go_micro_services/procon_data"
 )
 
+func AuthLogout(c *gin.Context) {
+	c.SetCookie(
+		"refresh_token",
+		"",
+		-1, //this will kill the 24hrs token
+		"/",
+		".pr0con.com",
+		true,
+		true,
+	)
+	
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": "Your session has been wiped",
+	})
+}
+
 func AuthLogin(c *gin.Context) {
 	var login procon_data.Login
 	
@@ -82,17 +99,10 @@ func AuthLogin(c *gin.Context) {
 	})
 }
 
-func AuthLogout(c *gin.Context) {
-	
-}
+
 
 func AuthRefresh(c *gin.Context) {
-	if Approved("REFRESH_TOKEN", c) {
-		fmt.Println("Refresh Access Token Granted.")
-		return
-	}
-	
-	fmt.Println("Refresh Access Token Denied.")
+	_,_,_ = procon_data.ValidateJWT("REFRESH_TOKEN", c)	
 }
 
 func AuthRegister(c *gin.Context) {
@@ -168,12 +178,19 @@ func AuthRegister(c *gin.Context) {
 }
 
 func AuthProfile(c *gin.Context) {
+	valid,u,err := procon_data.ValidateJWT("ACCESS_TOKEN", c)
+	if valid == false || err != nil {
+		resp := &procon_data.RespMsg{
+			Error: err.Error(),
+			Success: false,
+			Data: "Unable to find user profile.",
+		}
+		c.AbortWithStatusJSON(http.StatusUnauthorized, resp)
+		fmt.Println("Profile Access Request Denied.")
+		return
+	}
 	
+	u.Password = "F00"
+	c.JSON(http.StatusOK, u)
+	return
 }
-
-
-
-
-
-
-

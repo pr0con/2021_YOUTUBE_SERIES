@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'styled-components';
 import { RecoilRoot } from 'recoil'; //Global State System
@@ -71,7 +71,7 @@ export function App() {
 								
 								<div id="floating-panels">
 									<Pallete classes="mr-5"/>
-									<Profile classes="mr-5"/>
+									<Suspense fallback={<></>}><Profile classes="mr-5"/></Suspense>
 									<TaskList />
 								</div>
 								

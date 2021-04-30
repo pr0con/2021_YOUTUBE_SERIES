@@ -72,7 +72,7 @@ const imgSrcSrc = atom({
 import { MaterialInput } from './MaterialInput.js';
 import { MaterialButton } from './MaterialButton.js';
 
-
+import { userProfile, accessToken } from './Atoms.js'
 
 //https://thenounproject.com/term/hacker/
 export function Profile({classes}) {
@@ -92,7 +92,11 @@ export function Profile({classes}) {
 	const [ imgSrc_, setImgSrc ] = useRecoilState(imgSrc);
 	const [ imgSrcSrc_, setImgSrcSrc ] = useRecoilState(imgSrcSrc); //img src from -> webcam or upload?
 	
-	const { iiRef, wcRef, piRef, DataURIToBlob } = useContext(AppContext);
+	const { pushAlert, iiRef, wcRef, piRef, DataURIToBlob, hadleFetchErr } = useContext(AppContext);
+	
+	const userProfile_ = useRecoilValue(userProfile);
+	const [ accessToken_, setAccessToken ] = useRecoilState(accessToken);
+	
 	
 	const takeSnapShot = () => {
 		const imageSrc = wcRef.current.getScreenshot();
@@ -165,6 +169,19 @@ export function Profile({classes}) {
 		let result = await response.json();
 		console.log(result);		
 	}
+	
+	useEffect(() => {
+		if(userProfile_) {
+			setProfileData({
+				username: userProfile_.alias,
+				email: userProfile_.email,
+				password: '',
+				confirm: '',
+			});
+			setImgSrcSrc('profile');
+			setImgSrc(`/uploads/profile_pictures/${userProfile_.picture}`);
+		}
+	},[userProfile_])
 	
 	return(
 		<StyledProfile className={`${classes}`}>

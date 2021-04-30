@@ -51,6 +51,7 @@ type User struct {
 	Id			*primitive.ObjectID `json:"ID" bson:"_id,omitempty"`
 	Alias		string `json:"alias"`
 	Email		string `json:"email"`
+	Picture string `json:"picture,omitempty"`
 	Password	string `json:"password"`
 }
 
@@ -63,10 +64,10 @@ type Msg struct{
 }
 
 type RespMsg struct {	
-	Type string `json:"type",omitemty`
+	Type string `json:"type,omitempty"`
 	Success bool `json:"success"`
 	Data string `json:"data"`
-	Error string `json:"error,ommitempty"`	
+	Error string `json:"error,omitempty"`	
 }
 
 /* Argon 2 data objects */
@@ -181,10 +182,10 @@ func  GenerateJWT(jwt_type string, user *User) (string,error) {
 	//?
 }
 
-func ValidateJWT(token_type string, c *gin.Context) (bool, error) {
+func ValidateJWT(token_type string, c *gin.Context) (bool, *User, error) {
 	jwt := c.GetHeader("authorization")
 	
-	if token_type == "ACCESS_TYPE" {
+	if token_type == "ACCESS_TOKEN" {
 		splitToken := strings.Split(jwt, "Bearer ")
 		jwt = splitToken[1]
 	}
@@ -199,7 +200,7 @@ func ValidateJWT(token_type string, c *gin.Context) (bool, error) {
 				Data:  fmt.Sprintf("No refresh token found:  %s", err.Error()),
 			}
 			c.JSON(http.StatusUnauthorized, resp)
-			return false, nil
+			return false,nil, nil
 		}
 	}
 	
@@ -213,7 +214,7 @@ func ValidateJWT(token_type string, c *gin.Context) (bool, error) {
 			Data:  fmt.Sprintf("Unauthorized Request:  %s", err.Error()),
 		}
 		c.JSON(http.StatusUnauthorized, resp)
-		return false, nil		
+		return false,nil, nil		
 	} else if (token.Valid && err == nil) {
 		claims := token.Claims.(jwtgo.MapClaims)
 		
@@ -226,24 +227,24 @@ func ValidateJWT(token_type string, c *gin.Context) (bool, error) {
 		fmt.Println(claims_user_id)
 		fmt.Println(claims_meta_token_type)
 		
+					
+		u, err := GetUser([]byte(claims_user_id)) //@mongo.go
+		if err != nil {
+			resp := &RespMsg{
+				Success: false,
+				Data:  fmt.Sprintf("Error finding account / profile:  %s", err.Error()),
+			}
+			c.JSON(http.StatusUnauthorized, resp)
+			return false,nil, nil		
+		}
+		
 		//If access token request at this point we are okay to return true... access granted for request
 		if token_type == "ACCESS_TOKEN" && claims_meta_token_type == "ACCESS_TOKEN" {
-			return true, nil
+			return true,u, nil
 		}
 		
 		if token_type == "REFRESH_TOKEN" && claims_meta_token_type == "REFRESH_TOKEN" {
-			//Only generate a new access token since since we want the refresh token to live 24hrs
-			
-			u, err := GetUser([]byte(claims_user_id))
-			if err != nil {
-				resp := &RespMsg{
-					Success: false,
-					Data:  fmt.Sprintf("Error finding account / profile:  %s", err.Error()),
-				}
-				c.JSON(http.StatusUnauthorized, resp)
-				return false, nil		
-			}
-			
+			//Only generate a new access token since since we want the refresh token to live 24hrs			
 			at, err := GenerateJWT("ACCESS_TOKEN", u)
 			if err != nil {
 				resp := &RespMsg{
@@ -251,7 +252,7 @@ func ValidateJWT(token_type string, c *gin.Context) (bool, error) {
 					Data:  fmt.Sprintf("Problem refreshing access token:  %s", err.Error()),
 				}
 				c.JSON(http.StatusInternalServerError, resp)
-				return false, nil		
+				return false,nil, nil		
 			}
 			
 			c.JSON(http.StatusOK, gin.H{
@@ -261,11 +262,11 @@ func ValidateJWT(token_type string, c *gin.Context) (bool, error) {
 				"access_token": at,
 			})
 			
-			return true, nil
+			return true,nil, nil
 		}
 	}
 	
-	return false, nil
+	return false,nil, nil
 }
 
 

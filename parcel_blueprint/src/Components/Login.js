@@ -74,6 +74,12 @@ export function Login() {
 	
 	const Logout = async () => {
 		setAccessToken(false);
+		let response = await(await fetch(`https://var.pr0con.com:1300/api/auth/logout`, {
+			method: 'GET',
+			credentials: 'include'
+		}).catch(handleFetchErr)).json();
+		if('code' in response && 'message' in response) pushAlert(response); //Most likely a network error
+		if('success' in response && response.success === true) pushAlert(response); 
 	}
 	
 	const Login = async () => {
