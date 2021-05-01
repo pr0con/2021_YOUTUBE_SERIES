@@ -7,6 +7,8 @@ import(
 	"net/http"
 	"encoding/json"
 	
+	"github.com/google/uuid"
+	
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"	
 	
@@ -16,9 +18,29 @@ import(
 var addr = flag.String("addr", "0.0.0.0:1200", "Ws Service Address")
 
 func handleAPI(w http.ResponseWriter, r *http.Request) {
+	
+	//disconnect anyone who is from our site...
+	if r.Header.Get("Origin") != "https://var.pr0con.com" {
+		http.Error(w, "Cross site connection not permitted.", http.StatusUnauthorized)
+		return
+	}
+	
+	//let see what is in the headers...
+	for name, values := range r.Header {
+		for _, value := range values {
+			fmt.Println(name, value)
+		}
+	}
+	
+	id, err := uuid.NewRandom()
+	if err != nil { fmt.Println(err); return }
+	
 	conn, _, _, err := ws.UpgradeHTTP(r, w)
-	if err != nil {
-		// handle error
+	if err != nil { return }
+	
+	procon_ := &procon_data.Procon{
+		Conn: conn,
+		Uuid: "wsid-"+id.String(),
 	}
 	
 	go func() {
@@ -29,6 +51,18 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r)
 		encoder := json.NewEncoder(w)		
 		
+
+		//Friendly Hello ...
+		resp := procon_data.RespMsg{Type: "wsid", Success: true, Data: procon_.Uuid }
+		
+		if err := encoder.Encode(&resp); err != nil {
+			fmt.Println( err )
+		}
+		
+		if err = w.Flush(); err != nil {
+			fmt.Println( err )
+		}		
+				
 		LOOP:
 			for {
 				hdr, err := r.NextFrame()
@@ -47,17 +81,6 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 					break LOOP
 				}
 				
-				
-				fmt.Println(in)
-				resp := procon_data.RespMsg{Type: "System Message", Success: "true", Data: "Hello World"}
-				
-				if err := encoder.Encode(&resp); err != nil {
-					fmt.Println( err )
-				}
-				
-				if err = w.Flush(); err != nil {
-					fmt.Println( err )
-				}
 			}
 	}()
 }

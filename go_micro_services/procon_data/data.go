@@ -1,7 +1,8 @@
 package procon_data
 
 import(
-	"fmt"
+	"net"
+	 "fmt"
 	"time"
 	"errors"
 	"strings"
@@ -31,6 +32,12 @@ func init() {
 	f, err = ioutil.ReadFile(PRIVATE_KEY_PATH); if err != nil {
 		fmt.Println(err);
 	}else { PrivKeyFile, err = jwtgo.ParseRSAPrivateKeyFromPEMWithPassword(f, PKPWD); if err != nil { fmt.Println(err); }}	
+}
+
+/* Websocket */
+type Procon struct {
+	Conn net.Conn
+	Uuid string
 }
 
 
