@@ -36,12 +36,11 @@ export default function({children}) {
 	
 	//takes a fetch response
 	const pushAlert = async (a) => {
-		a.alertId = await nanoid()
+		a.alertId = await nanoid();
 		
 		if('access_token' in a) a.access_token = 'F00';
 		if('success' in a && a.success === true) a.type = 'alert-success';
 		
-		console.log('hit');
 		setSystemAlerts((alerts) => ([a, ...alerts]));
 	}
 	

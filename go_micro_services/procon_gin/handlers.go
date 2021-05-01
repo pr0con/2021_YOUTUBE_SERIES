@@ -180,12 +180,6 @@ func AuthRegister(c *gin.Context) {
 func AuthProfile(c *gin.Context) {
 	valid,u,err := procon_data.ValidateJWT("ACCESS_TOKEN", c)
 	if valid == false || err != nil {
-		resp := &procon_data.RespMsg{
-			Error: err.Error(),
-			Success: false,
-			Data: "Unable to find user profile.",
-		}
-		c.AbortWithStatusJSON(http.StatusUnauthorized, resp)
 		fmt.Println("Profile Access Request Denied.")
 		return
 	}

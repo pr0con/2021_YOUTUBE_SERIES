@@ -23,7 +23,7 @@ var client *mongo.Client
 //init functions aways fire as preliminary before main or after an import of package
 func init() {
 	var err error
-	client, err = mongo.NewClient(options.Client().ApplyURI("mongodb://mongod:SOMEHARDPASSWORD@127.0.0.1/admin"))
+	client, err = mongo.NewClient(options.Client().ApplyURI("mongodb://mongod:"+MONGO+"@127.0.0.1/admin"))
 	if err != nil {
 		fmt.Println("Error creating mongo client: ", err)
 	}

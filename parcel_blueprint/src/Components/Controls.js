@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, Suspense } from 'react';
 import styled from 'styled-components';
 import { useRecoilState, useRecoilValue } from 'recoil';
 
@@ -21,6 +21,7 @@ const StyleControls = styled.div`
 	
 	#controls-left {
 		display: flex;
+		align-items: center;
 		
 		.control-key {
 			text-transform: uppercase;
@@ -56,7 +57,10 @@ const StyleControls = styled.div`
 	
 `;
 
-import { orientation, operation, profile, webcam, imgSrc, imgSrcSrc } from './Atoms.js';
+import { Websocket } from './Websocket.js';
+import { Howler } from './SCI_FI_WRAPPERS/Howler.js';
+
+import { loggedIn, orientation, operation, selectToggle } from './Atoms.js';
 
 export function Controls() {	
 	const [ shiftDown, setShiftDown ] = useState(false);
@@ -67,6 +71,13 @@ export function Controls() {
 
 	const [ orientation_, setOrientation ] = useRecoilState(orientation);	
 	const [ operation_, setOperation ] = useRecoilState(operation);
+	
+	//Could use a state variable and use only one we will do this later.. 
+	const loggedIn_ = useRecoilValue(loggedIn);
+	const [ showFloats, toggleFloats ] = useRecoilState(selectToggle('floats'));
+	const [ showLogin, toggleLogin ] = useRecoilState(selectToggle('login-form'));
+	const [ showMenu, toggleMenu ] = useRecoilState(selectToggle('menu'));
+	const [ showClock, toggleClock ] = useRecoilState(selectToggle('clock'));
 		
 	const handleKeyDownEvent = async (key_event) => {
 		if(key_event.type == "keydown") {
@@ -147,10 +158,21 @@ export function Controls() {
 		}
 	},[handleKeyUpEvent]);
 	
+	//adds
+	useEffect(() => {
+		console.log(loggedIn_);
+	},[loggedIn_])	
+		
 		
 	return(
 		<StyleControls>
 			<div id="controls-left">
+				<svg className="hov" onClick={(e) => toggleFloats()} width="18" height="18" fill="transparent" stroke="rgba(150,107,104,1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+					<use href="/images/Svgs/feather-sprite.svg#feather"/>
+				</svg>	
+				<svg className="hov mr-5" onClick={(e) => toggleMenu()} width="18" height="18" fill="transparent" stroke="rgba(150,107,104,1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+					<use href="/images/Svgs/feather-sprite.svg#layout"/>
+				</svg>					
 				<div className={`control-key ${shiftDown ? 'on' : ''}`}>Shift</div>
 				<div className={`control-key ${ctrlDown ? 'on' : ''}`}>Ctrl</div>
 				<div className={`control-key ${altDown ? 'on' : ''}`}>Alt</div>
@@ -160,9 +182,24 @@ export function Controls() {
 			
 			</div>
 			<div id="controls-right">
+				<Howler />
+				<Websocket />
+			
+				{ loggedIn_ ?
+					<svg className="hov mr-5" onClick={(e) => toggleLogin()} width="18" height="18" fill="transparent" stroke="rgba(150,107,104,1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+						<use href="/images/Svgs/feather-sprite.svg#log-out"/>
+					</svg>	
+				:	
+					<svg className="hov mr-5" onClick={(e) => toggleLogin()} width="18" height="18" fill="transparent" stroke="rgba(150,107,104,1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+						<use href="/images/Svgs/feather-sprite.svg#log-in"/>
+					</svg>					
+				}
 				{ ['up','down','left','right'].includes(operation_) &&
 					<img className={`cr-chevron ${operation_}`} src="/images/Svgs/Chevron.svg" />
 				}
+				<svg className="hov mr-5" onClick={(e) => toggleMenu()} width="18" height="18" fill="transparent" stroke="rgba(150,107,104,1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+					<use href="/images/Svgs/feather-sprite.svg#clock"/>
+				</svg>					
 			</div>
 		</StyleControls>	
 	)

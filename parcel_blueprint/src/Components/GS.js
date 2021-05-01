@@ -1,6 +1,9 @@
 import styled, { createGlobalStyle } from 'styled-components';
 
 export const GS = createGlobalStyle`
+	.hov {
+		cursor: pointer;	
+	}
 	.mr-5 {
 		margin-right: .5rem;
 	}

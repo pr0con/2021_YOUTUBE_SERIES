@@ -36,11 +36,15 @@ const StyledLogin = styled.div`
 	}
 	
 	input { min-width: 100%; }
+	
+	&.false {
+		display: none;	
+	}
 `;
 
 import { MaterialInput } from './MaterialInput.js';
 import { MaterialButton } from './MaterialButton.js';
-import { loggedIn, initializing, accessToken } from './Atoms.js';
+import { loggedIn, initializing, accessToken, selectToggle } from './Atoms.js';
 
 export function Login() {
 	const [ username, setUsername ] = useState('');
@@ -49,6 +53,7 @@ export function Login() {
 	const [ accessToken_, setAccessToken ] = useRecoilState(accessToken);
 	
 	const { handleFetchErr, pushAlert } = useContext(AppContext);
+	const showLogin = useRecoilValue(selectToggle('login-form'));
 	
 	useEffect(() => {
 		if(initializing_) {
@@ -67,7 +72,7 @@ export function Login() {
 				
 				setInitializing(false);
 			}
-			fetchRefresh()
+			fetchRefresh();
 		}
 	},[initializing_]);
 	
@@ -96,13 +101,13 @@ export function Login() {
 			
 			if('type' in response && response.type === "access-token") pushAlert(response), setAccessToken(response.access_token);
 			if('code' in response && 'message' in response) pushAlert(response); //Most likely network Error
-			if('success' in response && response.success === true) pushAlert(response);
+			if('success' in response && response.success === false) (response.type = 'alert-error'), pushAlert(response); 
 			setInitializing(false);
 		}
 	}
 	
 	return(
-		<StyledLogin>	
+		<StyledLogin className={showLogin ? 'true' : 'false'}>	
 				{ (initializing_ === true && accessToken_ === false) ?
 					<span className="init-message">Refreshing credentials...</span>	
 				: (initializing_ === false && accessToken_ === false) ?

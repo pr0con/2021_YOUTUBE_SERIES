@@ -172,7 +172,16 @@ export function Profile({classes}) {
 	
 	useEffect(() => {
 		if(userProfile_) {
-			setProfileData({
+			if('success' in userProfile_ && userProfile_.success === false) {
+				let alert = {
+					type: 'alert-error',
+					data: userProfile_.data
+				}
+				pushAlert(alert)
+				return
+			}
+			
+		 	setProfileData({
 				username: userProfile_.alias,
 				email: userProfile_.email,
 				password: '',

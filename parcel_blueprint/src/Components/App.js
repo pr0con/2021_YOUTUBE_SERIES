@@ -33,28 +33,16 @@ const StyledApp = styled.div`
 		boder-radius: .2rem;
 		
 		perspective: 1000px;
-		
-		#floating-panels {
-			position: absolute;
-			
-			max-width: 100%;
-			display: flex;
-			
-			left: .5rem;
-			bottom: .5rem;	
-		}	
 	}
 `;
 
 
+import { Menu } from './Menu.js';
 import { Controls } from './Controls.js';
 import { Windows } from './Windows.js';
-
 import { Login } from './Login.js';
-import { Pallete } from './Pallete.js';
-import { Profile } from './Profile.js';
-import { TaskList } from './TaskList.js';
 import { Alerts } from './Alerts.js';
+import { Floats } from './Floats.js';
 
 export function App() {
 	return(
@@ -66,14 +54,13 @@ export function App() {
 							<GS />
 							<div id="viewport">
 								<Windows />
-								<Controls />
-								<Login />
 								
-								<div id="floating-panels">
-									<Pallete classes="mr-5"/>
-									<Suspense fallback={<></>}><Profile classes="mr-5"/></Suspense>
-									<TaskList />
-								</div>
+								<Suspense fallback={<></>}>
+									<Controls />
+									<Menu />
+									<Login />
+									<Floats />
+								</Suspense>
 								
 								<Alerts />
 							</div>

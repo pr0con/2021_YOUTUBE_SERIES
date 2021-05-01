@@ -1,5 +1,5 @@
 import React from 'react';
-import { atom, selector } from 'recoil';
+import { atom, selector, selectorFamily } from 'recoil';
 
 /*
 	Carousel Properties
@@ -121,13 +121,14 @@ export const accessToken = atom({
 	default: false
 })
 
-export const loggedIn = atom({
+export const loggedIn = selector({
 	key: 'logged-in',
 	get: ({get}) => {
 		return ( get(accessToken) === false) ? false : true
 	}
 });
 
+//inmutable...
 const handleFetchErrors = () => {
 	return new Response(JSON.stringify({
 		type: 'alert-error',
@@ -149,8 +150,32 @@ export const userProfile  = selector({
 				'Authorization': 'Bearer ' + at
 			}
 		}).catch(handleFetchErrors)).json();
-		return response
 		console.log(response);
+		return response
 	}
 })
+
+/* User Interface Toggles */
+export const toggles = atom({
+	key: 'toggles',
+	default: {
+		'clock': false,
+		'floats': false,
+		'menu': false,
+		'login-form': true
+	}
+})
+
+export const selectToggle = selectorFamily({
+	key: 'select-toggle',
+	get: (what) => async ({get}) => {
+		let v = get(toggles)[what];
+		//console.log(`${what}: ${v}`);
+		return v
+	},
+	set: (what) => ({get,set}) => {
+		set(toggles, {...get(toggles), [what]: !get(toggles)[what] }) //toggle true or false
+	}
+})
+
 
