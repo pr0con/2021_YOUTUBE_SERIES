@@ -33,16 +33,16 @@ const StyledMenu = styled.div`
 `;
 
 import { selectToggle } from './Atoms.js';
-//import { loadComponents } from './Atoms2.js';
+import { loadComponents } from './Atoms2.js';
 
 export function Menu() {
 	const menu = useRecoilValue(selectToggle('menu'));
-	//const [ components_, setComponents ] = useRecoilState(loadComponents('@menu.js'));//@menu.js actually is nothing
-	//onClick={(e) => setComponents('file-browser')} 
+	const [ components_, setComponents ] = useRecoilState(loadComponents('@menu.js'));//@menu.js actually is nothing
+	
 	
 	return(
 		<StyledMenu className={menu ? 'true' : 'false'}>
-			<svg className="ml-20 mr-5 hov" width="18" height="18" fill="transparent" stroke="rgba(150, 107, 104, 1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" > 
+			<svg className="mr-5 hov" onClick={(e) => setComponents('file-system')}  width="18" height="18" fill="transparent" stroke="rgba(150, 107, 104, 1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" > 
 				<use href="/images/Svgs/feather-sprite.svg#folder"/> 
 			</svg>	
 		</StyledMenu>	

@@ -11,16 +11,27 @@ const StyledCell = styled.div`
 	background: rgba(0,0,0,.5);
 	transform: ${(props) => props.t};
 	border-radius: .2rem;
+	
+	display: flex;
+	flex-direction: row-reverse;
 `;
 
 import { transforms } from './Atoms.js';
+import { loadComponents } from './Atoms2.js';
 
 export function Cell({index}) {
 	let transforms_ = useRecoilValue(transforms);
+	const windowComs = useRecoilValue(loadComponents(index+1));
+	
+	useEffect(() => {
+		console.log(windowComs)
+	},[windowComs]);
 	
 	return(
 		<StyledCell t={transforms_[index]}>
-			{index}
+			{ windowComs.length > 0 && windowComs.map((wco, i) => (
+				wco.wrapper 
+			))}
 		</StyledCell>
 	)
 }
