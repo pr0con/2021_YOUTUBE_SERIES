@@ -10,13 +10,19 @@ import(
 	"io/ioutil"
 	"crypto/rsa"
 	"crypto/rand"
+	"encoding/hex"
 	"crypto/subtle"
+	"encoding/json"
 	"encoding/base64"
+	
+	"github.com/gobwas/ws/wsutil"
 	
 	"github.com/gin-gonic/gin"
 	jwtgo "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/argon2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	
+	"go_micro_services/procon_tokenc"
 )
 
 var(
@@ -38,10 +44,25 @@ func init() {
 type Procon struct {
 	Conn net.Conn
 	Uuid string
+	R *wsutil.Reader
+	W *wsutil.Writer
+	E *json.Encoder
+	D *json.Decoder
 }
 
 
+
+
 /* Rest Data Structs */
+//bson retains the underscores here...
+type LCID struct {
+	Key 		string `bson:"key"`
+	AtSalt  string `bson:"at_salt"`
+	RtSalt  string `bson:"rt_salt"`
+	Exp		primitive.Timestamp `json:"exp"`	
+}
+
+
 type Login struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -64,15 +85,18 @@ type User struct {
 
 
 /* Websocket Data */
-type Msg struct{
+type Msg struct {
 	Jwt string `json:"jwt"`
+	LCID string `json:"lcid"`
+	Owner string `json:"owner"`
 	Type string `json:"type"`
 	Data string `json:"data"`
 }
 
 type RespMsg struct {	
-	Type string `json:"type,omitempty"`
+	Type string `json:"type, omitempty"`
 	Success bool `json:"success"`
+	Owner string `json:"owner, omitempty"`
 	Data string `json:"data"`
 	Error string `json:"error,omitempty"`	
 }
@@ -90,7 +114,7 @@ type argonParams struct {
 func GenerateArgonHash(password string) (encodedHash string, err error) {
 	p := &argonParams {
 		memory: 		64 * 1024,
-		iterations: 	3,
+		iterations:	 	3,
 		parallelism: 	2,
 		saltLength:     16,
 		keyLength:		32,
@@ -189,29 +213,95 @@ func  GenerateJWT(jwt_type string, user *User) (string,error) {
 	//?
 }
 
-func ValidateJWT(token_type string, c *gin.Context) (bool, *User, error) {
-	jwt := c.GetHeader("authorization")
+func ValidateRestJWT(token_type string, c *gin.Context) (bool, *User) {
+	//Look for LCID Cookie
+	lcid_record, err := c.Cookie("lcid_session_oid")
+	if err != nil { 
+		resp := &RespMsg{
+			Success: false, 
+			Data: fmt.Sprintf("No LCID Record Idicator: %s",err.Error()),
+		}
+		c.JSON(http.StatusUnauthorized, resp)		
+		return false,nil		
+	}
+	
+	
+	//Next Get LCID Record from DB
+	lcid_oid, err := primitive.ObjectIDFromHex(lcid_record)
+	if err != nil {
+		resp := &RespMsg{
+			Success: false, 
+			Data: fmt.Sprintf("LCID Conversion broke things: %s",err.Error()),
+		}
+		c.JSON(http.StatusUnauthorized, resp)		
+		return false,nil
+	}		
+	lcid_obj := GetLCID(&lcid_oid)	
+	
+	//Extract JWT from authorization header if it exists
+	hex_encoded_jwt := c.GetHeader("authorization") //for rest calls after login or refresh... like profile
+	
 	
 	if token_type == "ACCESS_TOKEN" {
-		splitToken := strings.Split(jwt, "Bearer ")
-		jwt = splitToken[1]
+		splitToken := strings.Split(hex_encoded_jwt, "Bearer ")
+		hex_encoded_jwt = splitToken[1]
 	}
 	
 	if token_type == "REFRESH_TOKEN" {
 		var err error
-		jwt, err = c.Cookie("refresh_token") 
+		hex_encoded_jwt, err = c.Cookie("refresh_token")
 		
+		//if err cookie not set...
 		if err != nil {
 			resp := &RespMsg{
-				Success: false,
-				Data:  fmt.Sprintf("No refresh token found:  %s", err.Error()),
+				Success: false, 
+				Data: fmt.Sprintf("No refresh token found: %s",err.Error()),
 			}
-			c.JSON(http.StatusUnauthorized, resp)
-			return false,nil, nil
-		}
+			c.JSON(http.StatusUnauthorized, resp)		
+			return false,nil	
+		}		
 	}
 	
-	token, err := jwtgo.Parse(jwt, func(token *jwtgo.Token) (interface{}, error) {
+	//Now we have our encrypted jwt encoded as hex... we need to de-hex encode
+	encrypted_jwt, err := hex.DecodeString(hex_encoded_jwt)
+	if err != nil {
+		resp := &RespMsg{
+			Success: false, 
+			Data: fmt.Sprintf("Unable to de hex jwt: %s",err.Error()),
+		}
+		c.JSON(http.StatusUnauthorized, resp)		
+		return false,nil
+	}		
+	
+	//key same for both
+	//get correct salt to use
+    hex_encoded_salt := lcid_obj.AtSalt; if token_type == "REFRESH_TOKEN" { hex_encoded_salt = lcid_obj.RtSalt; }
+	//Dehex encode the salt
+	hex_decoded_salt, err := hex.DecodeString(hex_encoded_salt)
+	if err != nil {
+		resp := &RespMsg{
+			Success: false, 
+			Data: fmt.Sprintf("Unable to decode hex salt: %s",err.Error()),
+		}
+		c.JSON(http.StatusUnauthorized, resp)		
+		return false,nil	
+	}		
+	
+	
+	//Next Decrypt the Token
+	jwt, err := procon_tokenc.Decrypt2([]byte(lcid_obj.Key), []byte(hex_decoded_salt), []byte(encrypted_jwt))
+	if err != nil {
+		resp := &RespMsg{
+			Success: false, 
+			Data: fmt.Sprintf("Could not decrypt token: %s",err.Error()),
+		}
+		c.JSON(http.StatusUnauthorized, resp)		
+		return false,nil
+	}			
+	//end section	
+	
+	
+	token, err := jwtgo.Parse(string(jwt), func(token *jwtgo.Token) (interface{}, error) {
 		return PubKeyFile,nil 	
 	})
 	
@@ -221,7 +311,8 @@ func ValidateJWT(token_type string, c *gin.Context) (bool, *User, error) {
 			Data:  fmt.Sprintf("Unauthorized Request:  %s", err.Error()),
 		}
 		c.JSON(http.StatusUnauthorized, resp)
-		return false,nil, nil		
+		return false,nil
+				
 	} else if (token.Valid && err == nil) {
 		claims := token.Claims.(jwtgo.MapClaims)
 		
@@ -242,12 +333,12 @@ func ValidateJWT(token_type string, c *gin.Context) (bool, *User, error) {
 				Data:  fmt.Sprintf("Error finding account / profile:  %s", err.Error()),
 			}
 			c.JSON(http.StatusUnauthorized, resp)
-			return false,nil, nil		
+			return false,nil		
 		}
 		
 		//If access token request at this point we are okay to return true... access granted for request
 		if token_type == "ACCESS_TOKEN" && claims_meta_token_type == "ACCESS_TOKEN" {
-			return true,u, nil
+			return true, u
 		}
 		
 		if token_type == "REFRESH_TOKEN" && claims_meta_token_type == "REFRESH_TOKEN" {
@@ -259,25 +350,100 @@ func ValidateJWT(token_type string, c *gin.Context) (bool, *User, error) {
 					Data:  fmt.Sprintf("Problem refreshing access token:  %s", err.Error()),
 				}
 				c.JSON(http.StatusInternalServerError, resp)
-				return false,nil, nil		
+				return false,nil	
 			}
+			
+			//We now need to encrypt a new AT after a refresh using same LCID
+			encrypted_at,at_salt,err := procon_tokenc.Encrypt2([]byte(lcid_obj.Key), []byte(at))
+			if err != nil { 
+				resp := &RespMsg{
+					Success: false, 
+					Data: fmt.Sprintf( "Problem Encrypting refreshed access_token: %s",err),
+				}		
+				c.JSON(http.StatusInternalServerError, resp)
+				return false,nil		
+			}
+			encrypted_at_hex := hex.EncodeToString(encrypted_at)
+			at_salt_hex := hex.EncodeToString(at_salt)				
+			
+			//Update LCID Record Access Token Salt 
+			if err := MongoUpdateAtSalt(&lcid_oid, at_salt_hex); err != nil {
+				resp := &RespMsg{
+					Success: false, 
+					Data: fmt.Sprintf("Problem Updating access_token LCID Salt: %s",err),
+				}		
+				c.JSON(http.StatusInternalServerError, resp)
+				return	false,nil
+			}			
+			
 			
 			c.JSON(http.StatusOK, gin.H{
 				"success": true,
-				"data": "Your session has been refreshed.",
+				"data": "Your Session has been refreshed.",
 				"type": "access-token",
-				"access_token": at,
+				"lcid": lcid_oid,
+				"access_token": encrypted_at_hex,
 			})
 			
-			return true,nil, nil
+			return true,nil
 		}
 	}
 	
-	return false,nil, nil
+	return false,nil
 }
 
 
 
+func ValidateWssJWT(lcid, at string) (bool, *User, error) {
+	lcid_oid, err := primitive.ObjectIDFromHex(lcid)
+	if err != nil { return false,nil,err }
+	
+	lcid_obj := GetLCID(&lcid_oid)
+	
+	//hex decode jwt
+	encrypted_jwt, err := hex.DecodeString(at)
+	if err != nil { return false, nil, err }
+	
+	//always should be access token.. 
+	hex_decoded_salt, err := hex.DecodeString(lcid_obj.AtSalt)
+	if err != nil { return false, nil, err }
+	
+	jwt, err := procon_tokenc.Decrypt2([]byte(lcid_obj.Key), []byte(hex_decoded_salt), []byte(encrypted_jwt))
+	if err != nil { return false, nil, err }
+		
+	token, err := jwtgo.Parse(string(jwt), func(token *jwtgo.Token) (interface{}, error) {
+		return PubKeyFile, nil
+	});	
+	if err != nil || token.Valid != true { return false, nil, err } 		
+	
+	claims := token.Claims.(jwtgo.MapClaims)
+	user	:= claims["user"].(map[string]interface{}) // _id alias email
+	meta	:= claims["meta"].(map[string]interface{}) // lcid todo		
+	
+	claims_meta_token_type := meta["type"].(string)
+	claims_user_id := user["_id"].(string)
+	
+	fmt.Println(claims_meta_token_type)
+	fmt.Println(claims_user_id)	
+	
+	u, err := GetUser([]byte(claims_user_id))
+	if err != nil { return false, nil, err }
+	
+	return token.Valid, u, nil			
+}
+
+func SendMsg(t string, s bool, o string, d string, e error, p *Procon) {
+	m := &RespMsg{t, s, o, d, ""}//type success owner data
+	if e != nil { m.Error = e.Error() }
+	
+	if err := p.E.Encode(&m); err != nil {
+		fmt.Println( err )
+	}
+	
+	if err := p.W.Flush(); err != nil {
+		fmt.Println( err )	
+	}
+}
 
 
 

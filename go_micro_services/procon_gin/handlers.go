@@ -4,13 +4,23 @@ import(
 	"os"
 	"fmt"
 	"net/http"
+	"encoding/hex"
 	"path/filepath"
+	
 	
 	"github.com/google/uuid"
 	"github.com/gin-gonic/gin"
 	
 	"go_micro_services/procon_data"
+	"go_micro_services/procon_tokenc"
 )
+
+
+
+func AuthRefresh(c *gin.Context) {
+	_,_ = procon_data.ValidateRestJWT("REFRESH_TOKEN", c)	
+}
+
 
 func AuthLogout(c *gin.Context) {
 	c.SetCookie(
@@ -18,7 +28,17 @@ func AuthLogout(c *gin.Context) {
 		"",
 		-1, //this will kill the 24hrs token
 		"/",
-		".pr0con.com",
+		"var.pr0con.com",
+		true,
+		true,
+	)
+	
+	c.SetCookie(
+		"lcid_session_oid",
+		"",
+		-1, //this will kill the 24hrs token
+		"/",
+		"var.pr0con.com",
 		true,
 		true,
 	)
@@ -81,12 +101,78 @@ func AuthLogin(c *gin.Context) {
 		return		
 	} 	
 	
+	
+	/* Enrypt the tokens */
+	key, err := uuid.NewRandom()
+	if err != nil {
+		resp := &procon_data.RespMsg{
+			Success: false,
+			Data: "Problem Generating Uuid Key.",
+		}
+		c.JSON(http.StatusInternalServerError, resp)
+		return		
+	}
+	
+	key_str := key.String()
+	//fmt.Println(key_str)
+	
+	encrypted_at, at_salt, err := procon_tokenc.Encrypt2([]byte(key_str), []byte(at))
+	if err != nil {
+		resp := &procon_data.RespMsg{
+			Success: false,
+			Data: "Problem Encrypting Access Token",
+		}
+		c.JSON(http.StatusInternalServerError, resp)
+		return				
+	}
+	//Convert encrypted token to hex
+	encrypted_at_hex := hex.EncodeToString(encrypted_at)
+	at_salt_hex := hex.EncodeToString(at_salt)
+	
+	
+	encrypted_rt, rt_salt,err := procon_tokenc.Encrypt2([]byte(key_str), []byte(rt))
+	if err != nil {
+		resp := &procon_data.RespMsg{
+			Success: false,
+			Data: "Problem Encrypting Refresh Token",
+		}
+		c.JSON(http.StatusInternalServerError, resp)
+		return				
+	}
+	//Convert encrypted refresh token to hex
+	encrypted_rt_hex :=  hex.EncodeToString(encrypted_rt)
+	rt_salt_hex := hex.EncodeToString(rt_salt)
+	
+	
+	//Store LCID (Life Cycle ID -- a custom thing of mine) 
+	stored_lcid_result, lcid_session_oid := procon_data.StoreLCID(key_str, at_salt_hex, rt_salt_hex)
+	if stored_lcid_result == false {	
+		resp := &procon_data.RespMsg{
+			Success: false,
+			Data: "Problem Encrypting Refresh Token",
+		}
+		c.JSON(http.StatusInternalServerError, resp)
+		return
+	}
+	
+	
+	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie(
-		"refresh_token",
-		rt,
+		"lcid_session_oid",
+		lcid_session_oid,
 		3600*24,
 		"/",
-		".pr0con.com",
+		"var.pr0con.com",
+		true,
+		true,
+	)		
+		
+	c.SetCookie(
+		"refresh_token",
+		encrypted_rt_hex,
+		3600*24,
+		"/",
+		"var.pr0con.com",
 		true,
 		true,
 	)	
@@ -95,15 +181,12 @@ func AuthLogin(c *gin.Context) {
 		"success": true,
 		"data": "You are logged in",
 		"type": "access-token",
-		"access_token": at,
+		"lcid": lcid_session_oid,
+		"access_token": encrypted_at_hex,
 	})
 }
 
 
-
-func AuthRefresh(c *gin.Context) {
-	_,_,_ = procon_data.ValidateJWT("REFRESH_TOKEN", c)	
-}
 
 func AuthRegister(c *gin.Context) {
 	file, err := c.FormFile("file")
@@ -159,27 +242,91 @@ func AuthRegister(c *gin.Context) {
 		return
 	}
 	
+	
+	/* Encrypt new tokens */
+	key, err := uuid.NewRandom()
+	if err != nil {
+		resp := &procon_data.RespMsg{
+			Success: false,
+			Data: "Problem Generating Uuid Key.",
+		}
+		c.JSON(http.StatusInternalServerError, resp)
+		return		
+	}
+	
+	key_str := key.String()
+	//fmt.Println(key_str)	
+	
+	encrypted_at, at_salt, err := procon_tokenc.Encrypt2([]byte(key_str), []byte(at))
+	if err != nil { 
+		resp := &procon_data.RespMsg{
+			Success: false, 
+			Data: "Problem Encrypting access_token",
+		}		
+		c.JSON(http.StatusInternalServerError, resp)
+		return		
+	}
+	encrypted_at_hex := hex.EncodeToString(encrypted_at)
+	at_salt_hex := hex.EncodeToString(at_salt)
+		
+		
+	encrypted_rt,rt_salt,err := procon_tokenc.Encrypt2([]byte(key_str), []byte(rt))
+	if err != nil { 
+		resp := &procon_data.RespMsg{
+			Success: false, 
+			Data: "Problem Encrypting refresh_token",
+		}		
+		c.JSON(http.StatusInternalServerError, resp)
+		return
+	}
+	encrypted_rt_hex := hex.EncodeToString(encrypted_rt)
+	rt_salt_hex := hex.EncodeToString(rt_salt)
+	
+	
+	stored_lcid_result, lcid_session_oid := procon_data.StoreLCID(key_str, at_salt_hex, rt_salt_hex)
+	if stored_lcid_result == false {
+		resp := &procon_data.RespMsg{
+			Success: false, 
+			Data: "Problem Encrpyting Storing Encryption Records",
+		}		
+		c.JSON(http.StatusInternalServerError, resp)
+		return		
+	}	
+		
+	
+	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie(
-		"refresh_token",
-		rt,
+		"lcid_session_oid",
+		lcid_session_oid,
 		3600*24,
 		"/",
-		".pr0con.com",
+		"var.pr0con.com",
 		true,
 		true,
-	)
+	)		
+		
+	c.SetCookie(
+		"refresh_token",
+		encrypted_rt_hex,
+		3600*24,
+		"/",
+		"var.pr0con.com",
+		true,
+		true,
+	)	
 	
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data": "Your profile has bein created.",
+		"data": "You are logged in",
 		"type": "access-token",
-		"access_token": at,
-	});
+		"lcid": lcid_session_oid,
+		"access_token": encrypted_at_hex,
+	})
 }
 
 func AuthProfile(c *gin.Context) {
-	valid,u,err := procon_data.ValidateJWT("ACCESS_TOKEN", c)
-	if valid == false || err != nil {
+	valid, u := procon_data.ValidateRestJWT("ACCESS_TOKEN", c)
+	if valid == false || u == nil {
 		fmt.Println("Profile Access Request Denied.")
 		return
 	}

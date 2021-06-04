@@ -155,6 +155,57 @@ func AuthenticateUser(username,password string) (*User, error) {
 	return nil, nil //most likely wont get here 
 }
 
+func StoreLCID(key, at_salt, rt_salt string) (bool, string) {
+	ctx_, cancel := context.WithTimeout(ctx, tox);
+	defer cancel()
+	
+	
+	exp := time.Now().Local().Add(time.Hour * time.Duration(24)).Unix() //24 hrs till death
+	lcid_obj := &LCID{
+		Key: key,
+		AtSalt: at_salt,
+		RtSalt: rt_salt,
+		Exp: primitive.Timestamp{T:uint32(exp)},	
+	}
+	
+	collection := client.Database("API").Collection("LCIDs")
+	insertResult, err := collection.InsertOne(ctx_, &lcid_obj)
+	if err != nil { return false, "" }
+	
+	return true, insertResult.InsertedID.(primitive.ObjectID).Hex()
+}
+
+func GetLCID(lcid_oid *primitive.ObjectID) (*LCID) {
+	ctx_, cancel := context.WithTimeout(ctx, tox)
+	defer cancel()	
+	
+	var lcid_data_obj LCID
+	collection := client.Database("API").Collection("LCIDs");
+	if err := collection.FindOne(ctx_, bson.D{{"_id", lcid_oid}}).Decode(&lcid_data_obj); err != nil { return nil }
+	
+	return &lcid_data_obj	
+}
+
+func MongoUpdateAtSalt(lcid_oid *primitive.ObjectID, salt string) (error) {
+	ctx_, cancel := context.WithTimeout(ctx, tox)
+	defer cancel()	
+	
+	filter := bson.M{"_id": bson.M{"$eq": lcid_oid}}
+	update := bson.M{"$set": bson.M{"at_salt": salt}}
+	
+	
+	collection := client.Database("API").Collection("LCIDs")
+	result, err := collection.UpdateOne(
+		ctx_,
+		filter,
+		update,
+	)	
+	_ = result // dont care.. only if err...
+	return err	
+} 
+
+
+
 func StopMongo() {
 	client.Disconnect(ctx)
 }
