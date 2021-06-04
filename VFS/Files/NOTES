@@ -49,7 +49,7 @@ server {
 2. Install Letsencrypt
 #> apt install certbot python3-certbot-nginx
 #> service nginx stop
-#> cerbot certonly --standalone -d yoursite.com
+#> certbot certonly --standalone -d yoursite.com
 #> service nginx start
 
 3. Install node
@@ -139,6 +139,17 @@ cd /var/www/node -> npm install pm2 -g
 ln -s /var/www/node/bin/pm2 /usr/sbin
 
 //add to ~/.bashrc after prompt stuffs. if you want extra
-Pretty prompot> PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] ' 
+Pretty prompt> PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] ' 
 
+
+/*
+	Removing Cookies from websocket handshake
+	Add AAA record @linode for instance to DNS records
+	host-wss.something.com --> for instance: var-wss.pr0con.com -> points to same server.... 
+	get new certificate, steup wss server to use that
+	change cookie domains and set strict
+*/
+
+Redis
+openssl rand 60 | openssl base64 -A
 

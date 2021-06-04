@@ -116,6 +116,12 @@ export const initializing = atom({
 	default: true
 });
 
+//used for websockets later...
+export const lcid = atom({
+	key: 'lcid',
+	default: false
+})
+
 export const accessToken = atom({
 	key: 'access-token',
 	default: false
@@ -145,7 +151,7 @@ export const userProfile  = selector({
 		
 		let response = await (await fetch(`https://var.pr0con.com:1300/api/auth/profile`, {
 			method: 'GET',
-			//credentials: 'include',
+			credentials: 'include',
 			headers: {
 				'Authorization': 'Bearer ' + at
 			}

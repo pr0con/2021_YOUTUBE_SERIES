@@ -5,6 +5,7 @@ import(
 	"fmt"
 	"flag"
 	"time"
+	"errors"
 	"net/http"
 	"encoding/json"
 	
@@ -16,6 +17,7 @@ import(
 	"go_micro_services/procon_data"
 	"go_micro_services/procon_wsfs"
 	"go_micro_services/procon_workerpool"
+	"go_micro_services/procon_redis"
 )
 
 var WP = procon_workerpool.NewWorkerPool(5)
@@ -114,6 +116,11 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 						case "get-child-directory":
 							WP.AddTasks([]*procon_workerpool.Task{
 								procon_workerpool.NewTask("get-child-directory", func() (interface{}, error) {
+									rkf := procon_redis.CheckRedisVFSKeyExists(in.Data)
+									
+									if !rkf { procon_redis.WipeAndGenerateVFSKeys(); rkf = procon_redis.CheckRedisVFSKeyExists(in.Data); } 
+									if !rkf { return false, errors.New("VFS PATH TRAVERSAL DETECTED.") }
+									
 									wd, err := procon_wsfs.GetDirectory(in.Data);
 									if err != nil {  procon_data.SendMsg("fs-directory",false, "", "", err, procon_);  } else {
 										mwd, _ := json.Marshal(wd)

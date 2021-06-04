@@ -14,6 +14,8 @@ const StyledCell = styled.div`
 	
 	display: flex;
 	flex-direction: row-reverse;
+	
+	padding-top: 2rem;
 `;
 
 import { transforms } from './Atoms.js';

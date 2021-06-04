@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { atom, selector, useRecoilValue, useRecoilState } from 'recoil';
+import { atom, selector, useRecoilValue, useRecoilState, selectorFamily } from 'recoil';
 
 const StyledWebsocket = styled.div`
 	
 `;
 
-import { loggedIn } from './Atoms.js';
+import { lcid, accessToken, loggedIn } from './Atoms.js';
 
 
 const rs = atom({key: 'rs', default: 0 }); //ready-state
@@ -21,7 +21,7 @@ const connect = selector({
 	set: ({get,set}, op) => {
 		switch(op) {
 			case "ws-on":
-				set(ws, new WebSocket('wss://var.pr0con.com:1200/ws'));
+				set(ws, new WebSocket('wss://var-wss.pr0con.com:1200/ws'));
 				break;
 			case "ws-off":
 				set(ws, false);
@@ -32,25 +32,54 @@ const connect = selector({
 	}
 })
 
-const worker = selector({
+
+
+const data = atom({
+	key: 'data',
+	default: []	
+})
+
+export const worker = selector({
 	key: 'worker',
 	get: ({get}) => {
 		return get(ws);
 	},
-	set: ({get,set}, op) => {
-		switch(op) {
-			//do stuff later....
-			default:
-				break;
+	set: ({get,set}, op) => { //this is our request...
+		if(get(loggedIn)) {
+			let payload = {
+				lcid: get(lcid),
+				jwt: get(accessToken),
+				owner: op.owner,
+				type: op.type,
+				data: op.data
+			};
+			get(ws).send(JSON.stringify(payload));		
 		}
 	}
+})
+
+
+export const getWssData = selectorFamily({
+	key: 'get-wss-data',
+	get: (cid) => ({get}) => {
+		let d = get(data)
+		let msgs = d.filter(msg => msg.owner === cid);
+		return msgs	
+	},
+	set: (cid) => ({get, set}) => {
+		
+	}	
 })
 
 
 export function Websocket() { 
 	const [ stroke, setStroke ] = useState("rgba(150, 107, 104, 1)");
 	const [ connect_, setConnect ] = useRecoilState(connect)
+		
+	const [ wsid_, setWsid ] = useRecoilState(wsId);
+	const [ data_, setData ] = useRecoilState(data);
 	const [ worker_, setWorker ] = useRecoilState(worker);
+	
 		
 	useEffect(() => {
 		if (connect_ === false) setStroke("rgba(150,107,104,1)");
@@ -69,8 +98,17 @@ export function Websocket() {
 			(async() => {
 				worker_.onopen = (open_event) => {
 					setStroke("rgba(183,223,185,1)");
+					
 					worker_.onmessage = (msg_event) => {
-						console.log(msg_event);
+						let tjo = JSON.parse(msg_event.data);
+						switch(tjo.type) {
+							case "wsid":
+								setWsid(tjo.data);	
+						
+							default:
+								//console.log(tjo);
+								if('owner' in tjo) setData(d => ([...d, tjo]));
+						}
 					}
 					worker.onclose = (close_event) => {
 						

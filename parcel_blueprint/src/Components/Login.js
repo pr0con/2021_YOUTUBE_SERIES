@@ -44,12 +44,13 @@ const StyledLogin = styled.div`
 
 import { MaterialInput } from './MaterialInput.js';
 import { MaterialButton } from './MaterialButton.js';
-import { loggedIn, initializing, accessToken, selectToggle } from './Atoms.js';
+import { lcid, loggedIn, initializing, accessToken, selectToggle } from './Atoms.js';
 
 export function Login() {
 	const [ username, setUsername ] = useState('');
 	const [ password, setPassword ] = useState('');
 	const [ initializing_, setInitializing ] = useRecoilState(initializing);
+	const [ lcid_, setLCID ] = useRecoilState(lcid);
 	const [ accessToken_, setAccessToken ] = useRecoilState(accessToken);
 	
 	const { handleFetchErr, pushAlert } = useContext(AppContext);
@@ -65,7 +66,7 @@ export function Login() {
 				
 				console.log(response);
 				
-				if('type' in response && response.type === "access-token") pushAlert(response), setAccessToken(response.access_token);
+				if('type' in response && response.type === "access-token") pushAlert(response), setLCID(response.lcid), setAccessToken(response.access_token);
 				if('code' in response && 'message' in response) pushAlert(response); //Most likely a network error
 				if('success' in response && response.success === false) (response.type = 'alert-error'), pushAlert(response);				
 				
@@ -99,7 +100,7 @@ export function Login() {
 			
 			console.log(response);
 			
-			if('type' in response && response.type === "access-token") pushAlert(response), setAccessToken(response.access_token);
+			if('type' in response && response.type === "access-token") pushAlert(response), setLCID(response.lcid), setAccessToken(response.access_token);
 			if('code' in response && 'message' in response) pushAlert(response); //Most likely network Error
 			if('success' in response && response.success === false) (response.type = 'alert-error'), pushAlert(response); 
 			setInitializing(false);

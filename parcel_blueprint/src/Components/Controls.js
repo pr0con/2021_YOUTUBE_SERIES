@@ -197,7 +197,7 @@ export function Controls() {
 				{ ['up','down','left','right'].includes(operation_) &&
 					<img className={`cr-chevron ${operation_}`} src="/images/Svgs/Chevron.svg" />
 				}
-				<svg className="hov mr-5" onClick={(e) => toggleMenu()} width="18" height="18" fill="transparent" stroke="rgba(150,107,104,1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+				<svg className="hov mr-5" width="18" height="18" fill="transparent" stroke="rgba(150,107,104,1)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
 					<use href="/images/Svgs/feather-sprite.svg#clock"/>
 				</svg>					
 			</div>
